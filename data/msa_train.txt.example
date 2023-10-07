@@ -1,0 +1,9 @@
+# MSA TTS training file format
+# One utterance per line: relative_wav_path|arabic_text
+# Text should be diacritized (tashkeel) for best results
+# All audio must be 22050 Hz mono WAV
+
+wavs/asc_001.wav|بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
+wavs/asc_002.wav|السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ
+wavs/asc_003.wav|الْعِلْمُ نُورٌ وَالْجَهْلُ ظَلَامٌ
+wavs/asc_004.wav|اللُّغَةُ الْعَرَبِيَّةُ لُغَةٌ سَامِيَّةٌ غَنِيَّةٌ

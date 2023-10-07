@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام تحويل النص إلى كلام — العربية الفصحى</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ─── Design System ─── */
+  :root {
+    --ink:       #0f0d0a;
+    --parchment: #f5f0e8;
+    --sand:      #e8dfc8;
+    --gold:      #c8963c;
+    --gold-dark: #8a6420;
+    --gold-glow: #f0b84a;
+    --deep:      #1a1410;
+    --muted:     #6b5e4a;
+    --success:   #2d6a4f;
+    --error:     #8b1a1a;
+    --wave-1:    #c8963c;
+    --wave-2:    #8a6420;
+    --border:    rgba(200,150,60,0.25);
+    --shadow:    0 8px 40px rgba(15,13,10,0.18);
+    --font-arabic: 'Amiri', 'Cairo', serif;
+    --font-ui: 'Cairo', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --radius: 4px;
+    --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--deep);
+    color: var(--parchment);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ─── Decorative Background ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(200,150,60,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 90%, rgba(138,100,32,0.06) 0%, transparent 60%),
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 40px,
+        rgba(200,150,60,0.015) 40px,
+        rgba(200,150,60,0.015) 41px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Islamic geometric corner ornament (CSS only) ─── */
+  .ornament {
+    position: fixed;
+    width: 200px;
+    height: 200px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.08;
+  }
+  .ornament-tl { top: -40px; right: -40px; transform: rotate(0deg); }
+  .ornament-br { bottom: -40px; left: -40px; transform: rotate(180deg); }
+  .ornament svg { width: 100%; height: 100%; }
+
+  /* ─── Layout ─── */
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ─── Header ─── */
+  header {
+    text-align: center;
+    padding: 64px 0 40px;
+    position: relative;
+  }
+
+  .header-ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    opacity: 0.6;
+  }
+  .header-ornament span {
+    display: block;
+    height: 1px;
+    width: 80px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .header-ornament .dot {
+    width: 6px; height: 6px;
+    background: var(--gold);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--gold-glow);
+  }
+
+  .site-title {
+    font-family: var(--font-arabic);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    background: linear-gradient(135deg, var(--gold-glow) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+  }
+
+  .site-subtitle {
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    direction: ltr;
+  }
+
+  /* ─── Status Badge ─── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    direction: ltr;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #4a9e6b;
+    box-shadow: 0 0 6px #4a9e6b;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  .status-dot.loading { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .status-dot.error   { background: #c0392b; box-shadow: 0 0 6px #c0392b; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ─── Main Card ─── */
+  .card {
+    background: rgba(26,20,16,0.85);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 36px 40px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(200,150,60,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .card-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-family: var(--font-mono);
+    direction: ltr;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── Textarea ─── */
+  .text-input-wrapper {
+    position: relative;
+  }
+
+  textarea#arabicText {
+    width: 100%;
+    min-height: 160px;
+    background: rgba(15,13,10,0.7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--parchment);
+    font-family: var(--font-arabic);
+    font-size: 1.45rem;
+    line-height: 2;
+    padding: 20px 22px;
+    resize: vertical;
+    direction: rtl;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    caret-color: var(--gold);
+  }
+  textarea#arabicText::placeholder {
+    color: rgba(107,94,74,0.5);
+    font-style: italic;
+    font-size: 1.25rem;
+  }
+  textarea#arabicText:focus {
+    border-color: rgba(200,150,60,0.5);
+    box-shadow: 0 0 0 3px rgba(200,150,60,0.08), inset 0 0 20px rgba(200,150,60,0.03);
+  }
+
+  .char-count {
+    position: absolute;
+    bottom: 10px;
+    left: 14px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    direction: ltr;
+  }
+
+  /* ─── Quick Phrases ─── */
+  .quick-phrases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .quick-btn {
+    background: rgba(200,150,60,0.08);
+    border: 1px solid rgba(200,150,60,0.2);
+    color: var(--gold);
+    font-family: var(--font-arabic);
+    font-size: 0.9rem;
+    padding: 5px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all var(--transition);
+    direction: rtl;
+  }
+  .quick-btn:hover {
+    background: rgba(200,150,60,0.18);
+    border-color: rgba(200,150,60,0.5);
+    transform: translateY(-1px);
+  }
+
+  /* ─── Controls Grid ─── */
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 4px;
+  }
+  @media (max-width: 640px) {
+    .controls-grid { grid-template-columns: 1fr 1fr; }
+    .card { padding: 24px 20px; }
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .control-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    direction: ltr;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .control-value {
+    color: var(--gold-glow);
+    font-weight: 500;
+  }
+
+  /* ─── Range Sliders ─── */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(200,150,60,0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  input[type=range]:hover { background: rgba(200,150,60,0.25); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(200,150,60,0.5);
+    transition: transform var(--transition), box-shadow var(--transition);
+  }
+  input[type=range]:hover::-webkit-slider-thumb {
+    transform: scale(1.2);
+    box-shadow: 0 0 14px rgba(200,150,60,0.7);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  /* ─── Toggle Switch ─── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+  .toggle-label-text {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    direction: ltr;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 44px; height: 24px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: rgba(200,150,60,0.1);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all var(--transition);
+  }
+  .toggle-switch input:checked + .toggle-track {
+    background: rgba(200,150,60,0.25);
+    border-color: rgba(200,150,60,0.5);
+  }
+  .toggle-switch input:checked + .toggle-track::after {
+    transform: translateX(20px);
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(200,150,60,0.6);
+  }
+
+  /* ─── Synthesize Button ─── */
+  .btn-synthesize {
+    width: 100%;
+    padding: 18px 32px;
+    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 50%, var(--gold-glow) 100%);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--deep);
+    font-family: var(--font-arabic);
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition);
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 24px rgba(200,150,60,0.25);
+  }
+  .btn-synthesize::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+  }
+  .btn-synthesize:hover::before { transform: translateX(100%); }
+  .btn-synthesize:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(200,150,60,0.4);
+  }
+  .btn-synthesize:active { transform: translateY(0); }
+  .btn-synthesize:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-content { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid rgba(26,20,16,0.3);
+    border-top-color: var(--deep);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  .btn-synthesize.loading .spinner { display: block; }
+  .btn-synthesize.loading .btn-icon { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── Audio Player ─── */
+  .audio-section {
+    display: none;
+    margin-top: 0;
+  }
+  .audio-section.visible { display: block; animation: fadeUp 0.4s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .waveform-container {
+    position: relative;
+    height: 80px;
+    background: rgba(15,13,10,0.6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .waveform-container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .waveform-progress {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    background: rgba(200,150,60,0.12);
+    border-right: 2px solid var(--gold);
+    transition: width 0.05s linear;
+    pointer-events: none;
+  }
+  .waveform-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+  .waveform-container:hover .waveform-overlay { opacity: 1; }
+  .waveform-overlay span {
+    font-size: 0.7rem;
+    color: var(--gold);
+    font-family: var(--font-mono);
+    background: rgba(15,13,10,0.8);
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    direction: ltr;
+  }
+
+  .player-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    direction: ltr;
+  }
+
+  .play-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition);
+    flex-shrink: 0;
+    font-size: 1.1rem;
+  }
+  .play-btn:hover {
+    background: rgba(200,150,60,0.15);
+    box-shadow: 0 0 16px rgba(200,150,60,0.3);
+    transform: scale(1.05);
+  }
+
+  .time-display {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    min-width: 80px;
+  }
+
+  .download-btn {
+    margin-right: auto;
+    padding: 8px 18px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .download-btn:hover {
+    border-color: rgba(200,150,60,0.4);
+    color: var(--gold);
+  }
+
+  /* ─── Metrics Panel ─── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 600px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .metric-box {
+    background: rgba(15,13,10,0.5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .metric-val {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--gold-glow);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .metric-name {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ─── Phoneme Panel ─── */
+  .phoneme-output {
+    background: rgba(15,13,10,0.7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: rgba(200,150,60,0.8);
+    direction: ltr;
+    line-height: 1.8;
+    word-break: break-all;
+    max-height: 100px;
+    overflow-y: auto;
+    margin-top: 4px;
+  }
+  .phoneme-output::-webkit-scrollbar { width: 4px; }
+  .phoneme-output::-webkit-scrollbar-track { background: transparent; }
+  .phoneme-output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ─── Diacritized text display ─── */
+  .diac-display {
+    font-family: var(--font-arabic);
+    font-size: 1.3rem;
+    line-height: 2.2;
+    color: var(--parchment);
+    direction: rtl;
+    padding: 14px 18px;
+    background: rgba(15,13,10,0.5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-top: 4px;
+    min-height: 56px;
+    word-spacing: 0.1em;
+  }
+  .diac-display .highlight-diac {
+    color: var(--gold-glow);
+    font-size: 0.85em;
+    vertical-align: super;
+  }
+
+  /* ─── Error Toast ─── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(139,26,26,0.95);
+    border: 1px solid rgba(192,57,43,0.5);
+    color: #f5b7b1;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    z-index: 100;
+    transition: transform 0.3s ease;
+    direction: ltr;
+    max-width: 400px;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ─── Pipeline Diagram ─── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 4px 0;
+    direction: ltr;
+  }
+  .pipeline-step {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .pipeline-node {
+    background: rgba(200,150,60,0.06);
+    border: 1px solid rgba(200,150,60,0.15);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.4;
+    transition: all var(--transition);
+    min-width: 72px;
+  }
+  .pipeline-node.active {
+    background: rgba(200,150,60,0.18);
+    border-color: rgba(200,150,60,0.5);
+    color: var(--gold-glow);
+    box-shadow: 0 0 12px rgba(200,150,60,0.15);
+  }
+  .pipeline-node .node-icon { font-size: 1rem; display: block; margin-bottom: 3px; }
+  .pipeline-arrow {
+    color: rgba(200,150,60,0.25);
+    font-size: 0.8rem;
+    padding: 0 4px;
+  }
+  .pipeline-arrow.active { color: var(--gold); }
+
+  /* ─── Footer ─── */
+  footer {
+    text-align: center;
+    padding: 24px 0;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: rgba(107,94,74,0.4);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    direction: ltr;
+    border-top: 1px solid rgba(200,150,60,0.06);
+  }
+
+</style>
+</head>
+<body>
+
+<!-- Decorative ornaments -->
+<div class="ornament ornament-tl">
+  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="95" stroke="#c8963c" stroke-width="1"/>
+    <circle cx="100" cy="100" r="70" stroke="#c8963c" stroke-width="0.5"/>
+    <polygon points="100,5 195,100 100,195 5,100" stroke="#c8963c" stroke-width="0.8" fill="none"/>
+    <polygon points="100,35 165,100 100,165 35,100" stroke="#c8963c" stroke-width="0.5" fill="none"/>
+    <line x1="5" y1="100" x2="195" y2="100" stroke="#c8963c" stroke-width="0.4"/>
+    <line x1="100" y1="5" x2="100" y2="195" stroke="#c8963c" stroke-width="0.4"/>
+  </svg>
+</div>
+<div class="ornament ornament-br">
+  <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="95" stroke="#c8963c" stroke-width="1"/>
+    <circle cx="100" cy="100" r="70" stroke="#c8963c" stroke-width="0.5"/>
+    <polygon points="100,5 195,100 100,195 5,100" stroke="#c8963c" stroke-width="0.8" fill="none"/>
+    <polygon points="100,35 165,100 100,165 35,100" stroke="#c8963c" stroke-width="0.5" fill="none"/>
+    <line x1="5" y1="100" x2="195" y2="100" stroke="#c8963c" stroke-width="0.4"/>
+    <line x1="100" y1="5" x2="100" y2="195" stroke="#c8963c" stroke-width="0.4"/>
+  </svg>
+</div>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="header-ornament">
+      <span></span>
+      <div class="dot"></div>
+      <span></span>
+    </div>
+    <h1 class="site-title">نظام تحويل النص إلى كلام</h1>
+    <p class="site-subtitle">Modern Standard Arabic · Text-to-Speech · VITS + HiFi-GAN</p>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">API: connecting…</span>
+    </div>
+  </header>
+
+  <!-- Pipeline Indicator -->
+  <div class="card" style="padding:24px 32px;">
+    <div class="card-label">pipeline</div>
+    <div class="pipeline" id="pipeline">
+      <div class="pipeline-step">
+        <div class="pipeline-node" id="pn0">
+          <span class="node-icon">📝</span>Normalize
+        </div>
+      </div>
+      <div class="pipeline-arrow" id="pa0">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-node" id="pn1">
+          <span class="node-icon">◌ّ</span>Diacritize
+        </div>
+      </div>
+      <div class="pipeline-arrow" id="pa1">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-node" id="pn2">
+          <span class="node-icon">🔤</span>G2P
+        </div>
+      </div>
+      <div class="pipeline-arrow" id="pa2">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-node" id="pn3">
+          <span class="node-icon">🎛</span>VITS
+        </div>
+      </div>
+      <div class="pipeline-arrow" id="pa3">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-node" id="pn4">
+          <span class="node-icon">🔊</span>HiFi-GAN
+        </div>
+      </div>
+      <div class="pipeline-arrow" id="pa4">→</div>
+      <div class="pipeline-step">
+        <div class="pipeline-node" id="pn5">
+          <span class="node-icon">🎵</span>Audio
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Text Input -->
+  <div class="card">
+    <div class="card-label">Arabic text input — النص العربي</div>
+    <div class="text-input-wrapper">
+      <textarea
+        id="arabicText"
+        placeholder="أدخل النص العربي الفصيح هنا…"
+        maxlength="2000"
+        autocomplete="off"
+        spellcheck="false"
+      ></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 2000</div>
+    </div>
+
+    <!-- Quick example phrases -->
+    <div class="quick-phrases">
+      <button class="quick-btn" onclick="setPhrase('بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ')">بسم الله</button>
+      <button class="quick-btn" onclick="setPhrase('السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ')">السلام عليكم</button>
+      <button class="quick-btn" onclick="setPhrase('اللُّغَةُ الْعَرَبِيَّةُ لُغَةٌ سَامِيَّةٌ غَنِيَّةٌ بِمُفْرَدَاتِهَا')">اللغة العربية</button>
+      <button class="quick-btn" onclick="setPhrase('يَسْعَدُنِي أَنْ أُقَدِّمَ لَكُمْ هَذَا النِّظَامَ الْمُتَطَوِّرَ لِتَحْوِيلِ النُّصُوصِ إِلَى كَلَامٍ')">مثال طويل</button>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="card-label">synthesis controls</div>
+    <div class="controls-grid">
+      <div class="control-group">
+        <div class="control-label">
+          Speed <span class="control-value" id="speedVal">1.0×</span>
+        </div>
+        <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.05" value="1.0"
+               oninput="document.getElementById('speedVal').textContent = parseFloat(this.value).toFixed(1)+'×'">
+      </div>
+      <div class="control-group">
+        <div class="control-label">
+          Pitch <span class="control-value" id="pitchVal">0 st</span>
+        </div>
+        <input type="range" id="pitchSlider" min="-6" max="6" step="0.5" value="0"
+               oninput="document.getElementById('pitchVal').textContent = (this.value > 0 ? '+' : '') + parseFloat(this.value).toFixed(1)+' st'">
+      </div>
+      <div class="control-group">
+        <div class="control-label">
+          Variation <span class="control-value" id="noiseVal">0.67</span>
+        </div>
+        <input type="range" id="noiseSlider" min="0" max="1" step="0.01" value="0.667"
+               oninput="document.getElementById('noiseVal').textContent = parseFloat(this.value).toFixed(2)">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:16px; margin-top:18px; flex-wrap:wrap;">
+      <div class="toggle-row" style="flex:1; min-width:160px;">
+        <span class="toggle-label-text">Auto-Diacritize</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="diacToggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row" style="flex:1; min-width:160px;">
+        <span class="toggle-label-text">Show Phonemes</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="phonemeToggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="toggle-row" style="flex:1; min-width:160px;">
+        <span class="toggle-label-text">Show Diacritics</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="diacDisplayToggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Synthesize Button -->
+  <div class="card" style="padding:28px 40px;">
+    <button class="btn-synthesize" id="synthesizeBtn" onclick="synthesize()">
+      <div class="btn-content">
+        <span class="btn-icon">🔊</span>
+        <div class="spinner"></div>
+        <span id="btnText">تحويل النص إلى كلام</span>
+      </div>
+    </button>
+  </div>
+
+  <!-- Audio Output -->
+  <div class="audio-section" id="audioSection">
+    <div class="card">
+      <div class="card-label">audio output</div>
+      <!-- Waveform -->
+      <div class="waveform-container" id="waveformContainer" onclick="togglePlay()">
+        <canvas id="waveformCanvas"></canvas>
+        <div class="waveform-progress" id="waveformProgress"></div>
+        <div class="waveform-overlay"><span>click to play / pause</span></div>
+      </div>
+
+      <!-- Player Controls -->
+      <div class="player-controls">
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+        <div class="time-display">
+          <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+        </div>
+        <button class="download-btn" id="downloadBtn" onclick="downloadAudio()">
+          ↓ Download WAV
+        </button>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="card">
+      <div class="card-label">synthesis metrics</div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-val" id="metricDuration">—</div>
+          <div class="metric-name">Duration (s)</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" id="metricRTF">—</div>
+          <div class="metric-name">RTF</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" id="metricDiac">—</div>
+          <div class="metric-name">Diacritizer</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" id="metricSR">22k</div>
+          <div class="metric-name">Sample Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diacritized Text Display -->
+    <div class="card" id="diacCard" style="display:none;">
+      <div class="card-label">diacritized text — النص المشكّل</div>
+      <div class="diac-display" id="diacDisplay"></div>
+    </div>
+
+    <!-- Phoneme Output -->
+    <div class="card" id="phonemeCard" style="display:none;">
+      <div class="card-label">phoneme sequence — G2P output</div>
+      <div class="phoneme-output" id="phonemeOutput"></div>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<footer>
+  MSA TTS · VITS + HiFi-GAN · Arabic NLP Pipeline · FastAPI Backend
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Configuration ───
+const API_BASE = "http://localhost:8000"; // Change to your deployed backend URL
+
+// ─── State ───
+let audioBlob = null;
+let audioCtx = null;
+let audioSource = null;
+let audioBuffer = null;
+let isPlaying = false;
+let startTime = 0;
+let pauseOffset = 0;
+let animationId = null;
+let waveformData = null;
+
+// ─── Init ───
+document.getElementById("arabicText").addEventListener("input", function () {
+  document.getElementById("charCount").textContent = this.value.length;
+});
+
+checkAPIHealth();
+
+async function checkAPIHealth() {
+  const dot = document.getElementById("statusDot");
+  const txt = document.getElementById("statusText");
+  dot.className = "status-dot loading";
+  txt.textContent = "API: connecting…";
+  try {
+    const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      const data = await res.json();
+      dot.className = "status-dot";
+      txt.textContent = `API: online · device: ${data.device} · diac: ${data.diacritizer}`;
+    } else throw new Error();
+  } catch {
+    dot.className = "status-dot error";
+    txt.textContent = "API: offline (demo mode — audio generated locally)";
+  }
+}
+
+// ─── Quick Phrases ───
+function setPhrase(text) {
+  const ta = document.getElementById("arabicText");
+  ta.value = text;
+  document.getElementById("charCount").textContent = text.length;
+  ta.focus();
+}
+
+// ─── Pipeline Animation ───
+function animatePipeline(activeStep) {
+  for (let i = 0; i <= 5; i++) {
+    const node = document.getElementById(`pn${i}`);
+    const arrow = document.getElementById(`pa${i}`);
+    if (i < activeStep) {
+      node.classList.add("active");
+      if (arrow) arrow.classList.add("active");
+    } else {
+      node.classList.remove("active");
+      if (arrow) arrow.classList.remove("active");
+    }
+  }
+}
+
+function resetPipeline() {
+  for (let i = 0; i <= 5; i++) {
+    document.getElementById(`pn${i}`)?.classList.remove("active");
+    document.getElementById(`pa${i}`)?.classList.remove("active");
+  }
+}
+
+// ─── Main Synthesis ───
+async function synthesize() {
+  const text = document.getElementById("arabicText").value.trim();
+  if (!text) { showToast("الرجاء إدخال نص عربي"); return; }
+
+  const btn = document.getElementById("synthesizeBtn");
+  const btnTxt = document.getElementById("btnText");
+  btn.disabled = true;
+  btn.classList.add("loading");
+  btnTxt.textContent = "جارٍ التحليل…";
+  resetPipeline();
+
+  const speed = parseFloat(document.getElementById("speedSlider").value);
+  const pitch = parseFloat(document.getElementById("pitchSlider").value);
+  const noise = parseFloat(document.getElementById("noiseSlider").value);
+  const returnPhonemes = document.getElementById("phonemeToggle").checked;
+  const showDiac = document.getElementById("diacDisplayToggle").checked;
+
+  // Animate pipeline steps
+  const pipelineInterval = async () => {
+    for (let step = 1; step <= 6; step++) {
+      await delay(220);
+      animatePipeline(step);
+      if (step === 1) btnTxt.textContent = "تطبيع النص…";
+      if (step === 2) btnTxt.textContent = "إضافة التشكيل…";
+      if (step === 3) btnTxt.textContent = "تحليل الأصوات…";
+      if (step === 4) btnTxt.textContent = "النمذجة الصوتية…";
+      if (step === 5) btnTxt.textContent = "توليد الصوت…";
+    }
+  };
+
+  try {
+    const pipelineAnim = pipelineInterval();
+
+    // Try real API first
+    let result = null;
+    try {
+      const res = await fetch(`${API_BASE}/synthesize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text, speed, pitch_shift: pitch,
+          noise_scale: noise,
+          return_phonemes: returnPhonemes
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (res.ok) result = await res.json();
+    } catch {
+      // Demo mode: generate locally
+      result = await generateDemoAudio(text, speed);
+    }
+
+    await pipelineAnim;
+    animatePipeline(6);
+
+    if (result) {
+      await loadAudioResult(result);
+      updateMetrics(result);
+      if (returnPhonemes && result.phonemes) showPhonemes(result.phonemes);
+      if (showDiac && result.diacritized_text) showDiacritized(result.diacritized_text);
+      document.getElementById("audioSection").classList.add("visible");
+    }
+
+  } catch (e) {
+    showToast("حدث خطأ أثناء التوليد: " + e.message);
+    resetPipeline();
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("loading");
+    btnTxt.textContent = "تحويل النص إلى كلام";
+  }
+}
+
+// ─── Demo Audio (local fallback) ───
+async function generateDemoAudio(text, speed) {
+  const sampleRate = 22050;
+  const charsPerSec = 12 * speed;
+  const duration = Math.max(text.length / charsPerSec, 1.0);
+  const numSamples = Math.floor(sampleRate * duration);
+
+  // Generate realistic formant-like tone
+  const samples = new Float32Array(numSamples);
+  const baseFreq = 110;
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    const env = Math.min(t * 8, 1) * Math.min((duration - t) * 8, 1);
+    const vibrato = 1 + 0.005 * Math.sin(2 * Math.PI * 5.5 * t);
+    samples[i] = env * (
+      0.4 * Math.sin(2 * Math.PI * baseFreq * vibrato * t) +
+      0.25 * Math.sin(2 * Math.PI * baseFreq * 2 * vibrato * t) +
+      0.15 * Math.sin(2 * Math.PI * baseFreq * 3 * t) +
+      0.08 * Math.sin(2 * Math.PI * baseFreq * 4 * t)
+    );
+  }
+
+  const wavBytes = encodeWAV(samples, sampleRate);
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(wavBytes)));
+
+  return {
+    audio_b64: b64,
+    sample_rate: sampleRate,
+    duration_s: parseFloat(duration.toFixed(3)),
+    rtf: 0.12,
+    diacritizer: "demo",
+    phonemes: "[demo mode — connect backend for real phonemes]",
+    diacritized_text: text
+  };
+}
+
+function encodeWAV(samples, sampleRate) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, "data");
+  view.setUint32(40, samples.length * 2, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++, offset += 2) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return buffer;
+}
+
+// ─── Audio Loading & Playback ───
+async function loadAudioResult(result) {
+  if (audioSource) { audioSource.stop(); audioSource = null; }
+  if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+
+  const wavBytes = Uint8Array.from(atob(result.audio_b64), c => c.charCodeAt(0));
+  audioBlob = new Blob([wavBytes], { type: "audio/wav" });
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const arrayBuf = await audioBlob.arrayBuffer();
+  audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
+
+  drawWaveform(audioBuffer);
+  updateTimeDisplay(0, audioBuffer.duration);
+  document.getElementById("playBtn").textContent = "▶";
+  isPlaying = false;
+  pauseOffset = 0;
+}
+
+function togglePlay() {
+  if (!audioBuffer) return;
+  if (isPlaying) {
+    pauseOffset += audioCtx.currentTime - startTime;
+    audioSource.stop();
+    audioSource = null;
+    isPlaying = false;
+    document.getElementById("playBtn").textContent = "▶";
+    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+  } else {
+    if (pauseOffset >= audioBuffer.duration) pauseOffset = 0;
+    audioSource = audioCtx.createBufferSource();
+    audioSource.buffer = audioBuffer;
+    audioSource.connect(audioCtx.destination);
+    audioSource.start(0, pauseOffset);
+    startTime = audioCtx.currentTime;
+    isPlaying = true;
+    document.getElementById("playBtn").textContent = "⏸";
+    audioSource.onended = () => {
+      if (isPlaying) {
+        isPlaying = false;
+        pauseOffset = 0;
+        document.getElementById("playBtn").textContent = "▶";
+        document.getElementById("waveformProgress").style.width = "0%";
+        if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+      }
+    };
+    updatePlaybackProgress();
+  }
+}
+
+function updatePlaybackProgress() {
+  const elapsed = pauseOffset + (audioCtx.currentTime - startTime);
+  const progress = Math.min(elapsed / audioBuffer.duration, 1);
+  document.getElementById("waveformProgress").style.width = (progress * 100) + "%";
+  updateTimeDisplay(elapsed, audioBuffer.duration);
+  if (isPlaying) animationId = requestAnimationFrame(updatePlaybackProgress);
+}
+
+function updateTimeDisplay(current, total) {
+  const fmt = s => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+  document.getElementById("currentTime").textContent = fmt(Math.min(current, total));
+  document.getElementById("totalTime").textContent = fmt(total);
+}
+
+// ─── Waveform Drawing ───
+function drawWaveform(buffer) {
+  const canvas = document.getElementById("waveformCanvas");
+  const ctx = canvas.getContext("2d");
+  const container = document.getElementById("waveformContainer");
+  canvas.width = container.clientWidth * window.devicePixelRatio;
+  canvas.height = container.clientHeight * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+
+  const data = buffer.getChannelData(0);
+  const step = Math.ceil(data.length / W);
+  ctx.clearRect(0, 0, W, H);
+
+  const gradient = ctx.createLinearGradient(0, 0, W, 0);
+  gradient.addColorStop(0, "rgba(200,150,60,0.3)");
+  gradient.addColorStop(0.5, "rgba(240,184,74,0.7)");
+  gradient.addColorStop(1, "rgba(200,150,60,0.3)");
+  ctx.fillStyle = gradient;
+
+  for (let x = 0; x < W; x++) {
+    let min = 1, max = -1;
+    for (let i = 0; i < step; i++) {
+      const s = data[x * step + i] || 0;
+      if (s < min) min = s;
+      if (s > max) max = s;
+    }
+    const yLow = (1 + min) / 2 * H;
+    const yHigh = (1 + max) / 2 * H;
+    ctx.fillRect(x, yHigh, 1, Math.max(1, yLow - yHigh));
+  }
+}
+
+// ─── Download ───
+function downloadAudio() {
+  if (!audioBlob) return;
+  const url = URL.createObjectURL(audioBlob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `msa_tts_${Date.now()}.wav`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Metrics ───
+function updateMetrics(result) {
+  document.getElementById("metricDuration").textContent = result.duration_s?.toFixed(2) ?? "—";
+  document.getElementById("metricRTF").textContent = result.rtf?.toFixed(3) ?? "—";
+  document.getElementById("metricDiac").textContent = result.diacritizer ?? "—";
+  document.getElementById("metricSR").textContent = result.sample_rate ? (result.sample_rate / 1000).toFixed(1) + "k" : "22k";
+}
+
+// ─── Phonemes ───
+function showPhonemes(phonemes) {
+  const card = document.getElementById("phonemeCard");
+  const out = document.getElementById("phonemeOutput");
+  card.style.display = "block";
+  out.textContent = phonemes;
+}
+
+// ─── Diacritized Text ───
+function showDiacritized(text) {
+  const card = document.getElementById("diacCard");
+  const disp = document.getElementById("diacDisplay");
+  card.style.display = "block";
+  disp.textContent = text;
+}
+
+// ─── Toast ───
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3800);
+}
+
+// ─── Utils ───
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+// Handle toggle visibility for optional panels
+document.getElementById("phonemeToggle").addEventListener("change", function() {
+  if (!this.checked) document.getElementById("phonemeCard").style.display = "none";
+});
+document.getElementById("diacDisplayToggle").addEventListener("change", function() {
+  if (!this.checked) document.getElementById("diacCard").style.display = "none";
+});
+</script>
+</body>
+</html>
