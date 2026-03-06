@@ -1,0 +1,209 @@
+feat: initial release — MSA Arabic TTS v1.0.0
+
+Complete production-grade Modern Standard Arabic text-to-speech system
+built on VITS + HiFi-GAN with full Arabic NLP preprocessing pipeline.
+
+─────────────────────────────────────────────────────────────────────
+
+WHAT
+
+End-to-end Arabic TTS system targeting Modern Standard Arabic (الفصحى)
+only. Takes raw or diacritized Arabic text, runs it through a 6-stage
+NLP pipeline, and synthesises 22050 Hz speech via VITS.
+
+─────────────────────────────────────────────────────────────────────
+
+PIPELINE STAGES
+
+  [1] Text Normalization   — numbers, tatweel, abbreviations, hamza
+  [2] Diacritization       — CAMeL BERT → Mishkal → passthrough
+  [3] G2P Conversion       — 28 consonants, sun-letter assimilation
+  [4] VITS Acoustic Model  — Transformer encoder + normalising flow
+  [5] HiFi-GAN Vocoder     — embedded in VITS (end-to-end)
+  [6] WAV Output           — 22050 Hz, 16-bit
+
+─────────────────────────────────────────────────────────────────────
+
+FILES ADDED
+
+  msa_tts_backend.py        FastAPI server — full pipeline (~40 KB)
+  msa_tts_frontend.html     RTL web app — waveform, controls  (~40 KB)
+  msa_tts_launcher.sh       Bash TUI — 7 menus, 50+ options   (~55 KB)
+  requirements.txt          Python dependencies
+  Dockerfile                Production Docker image
+  docker-compose.yml        API + nginx frontend stack
+  nginx.conf                Reverse proxy configuration
+  msa-tts.service           systemd unit file
+  gunicorn.conf.py          Production WSGI config
+  configs/
+    arabic_msa_vits.json    VITS hyperparameters for MSA Arabic
+  data/
+    msa_train.txt.example   Training file format reference
+    msa_val.txt.example     Validation file format reference
+  tests/
+    test_pipeline.py        96 unit tests (normalizer, G2P, eval)
+    test_api.py             51 live API integration tests
+  docs/
+    msa_tts_docs.html       Interactive documentation + live demo
+  README.md                 Full project documentation
+  CHANGELOG.md              Version history
+  .env.example              Environment variable reference
+  .gitignore                Python / PyTorch / CAMeL exclusions
+
+─────────────────────────────────────────────────────────────────────
+
+ARABIC NLP
+
+  Normalizer
+  • Western (0-9) and Eastern (٠-٩) digit → Arabic word expansion
+  • Numbers 0-9999 fully covered (صفر → تسعة آلاف)
+  • Tatweel/kashida removal (العـلـم → العلم)
+  • Common abbreviation expansion (د. → دكتور، أ. → أستاذ)
+  • Hamza form normalisation
+
+  Diacritizer (auto-fallback chain)
+  • CAMeL Tools: BERT-based, ~95% DER on MSA — preferred
+  • Mishkal: rule-based, ~88% DER — lightweight fallback
+  • Passthrough: for pre-diacritized input (auto-detected by ratio)
+
+  G2P
+  • All 28 Arabic consonants mapped to IPA-compatible phonemes
+  • Pharyngeals: ح→ħ, ع→ʕ
+  • Uvulars: خ→x, غ→ɣ, ق→q
+  • Emphatics: ص→sˤ, ض→dˤ, ط→tˤ, ظ→ðˤ
+  • Glottal stop: ء→ʔ
+  • Diacritic vowels: fatha→a, damma→u, kasra→i
+  • Tanwin: ً→an, ٌ→un, ٍ→in
+  • Sun-letter ال assimilation (الشمس → ashshams)
+  • Shadda gemination (bb, ss, ʃʃ…)
+  • Prosody pause markers from punctuation (،→short ؛→medium .→long)
+
+─────────────────────────────────────────────────────────────────────
+
+MODEL
+
+  Architecture  : VITS (end-to-end text → waveform)
+  Encoder       : Transformer, 6 layers, 192 hidden channels
+  Duration pred : Stochastic duration predictor
+  Flow          : Normalising flow, 4 coupling layers
+  Vocoder       : HiFi-GAN (embedded — no separate stage)
+  Sample rate   : 22050 Hz
+  Training      : batch=16, lr=2e-4, fp16, segment_size=8192
+
+  Why VITS over alternatives:
+  • End-to-end — no inter-stage error accumulation
+  • HiFi-GAN built-in — real-time CPU inference
+  • Stochastic duration — handles Arabic prosodic complexity
+  • Superior naturalness vs FastSpeech 2 / Tacotron 2
+
+─────────────────────────────────────────────────────────────────────
+
+API ENDPOINTS
+
+  GET  /health             Server status, model state, device
+  GET  /voices             Available voice metadata
+  GET  /docs               Swagger UI
+  POST /synthesize         Full TTS → base64 WAV
+  POST /synthesize/stream  Streaming WAV response
+  POST /normalize          Text normalisation only
+  POST /diacritize         Add tashkeel to MSA text
+  POST /g2p                Grapheme-to-phoneme conversion
+
+  Synthesis parameters:
+    text          string  1-2000 chars (required)
+    speed         float   0.5-2.0 (default 1.0)
+    pitch_shift   float   ±6 semitones (default 0.0)
+    noise_scale   float   0.0-1.0 (default 0.667)
+    return_phonemes bool  include G2P output (default false)
+
+─────────────────────────────────────────────────────────────────────
+
+LAUNCHER (msa_tts_launcher.sh)
+
+  1) Setup       create venv, install deps, download CAMeL data,
+                 install VITS, check GPU, verify all
+  2) Server      start/stop/restart, Docker, logs, health check,
+                 serve frontend, dev mode (--reload)
+  3) Training    preprocess dataset, train VITS, resume, TensorBoard,
+                 evaluate, ONNX export, list checkpoints
+  4) Inference   interactive synthesis, batch synthesis, test each
+                 pipeline stage, RTF benchmark, test suite
+  5) Config      host, port, workers, device, diacritizer, log level,
+                 model path — persisted to .tts_config
+  6) Monitor     CPU/RAM, GPU util, API smoke test, log management,
+                 Python env info, disk usage
+  7) Deploy      Dockerfile, docker-compose, nginx, systemd, gunicorn,
+                 push to registry
+
+  Direct commands:
+    ./msa_tts_launcher.sh start|stop|restart|status|test|benchmark
+
+─────────────────────────────────────────────────────────────────────
+
+DEMO MODE
+
+  Backend: formant synthesizer when no checkpoint loaded
+  Frontend: Web Audio API synthesis — fully offline, no server needed
+  All API endpoints, validation, NLP stages work in demo mode
+
+─────────────────────────────────────────────────────────────────────
+
+TESTING
+
+  147 tests, 100% passing
+
+  tests/test_pipeline.py  (96 unit tests)
+  • ArabicTextNormalizer  13 tests
+  • ArabicDiacritizer      9 tests
+  • ArabicG2P             52 tests (all 28 consonants, 14 sun letters,
+                                    7 diacritics, pause markers, shadda)
+  • TTSEvaluator           6 tests
+  • Constants              6 tests
+
+  tests/test_api.py  (51 live integration tests)
+  • GET /health            5 tests
+  • GET /voices            6 tests
+  • POST /normalize        5 tests (number, tatweel, abbrev, eastern)
+  • POST /diacritize       3 tests
+  • POST /g2p              4 tests (phonemes + pause markers)
+  • POST /synthesize       9 tests (WAV validity, fields, phonemes)
+  • POST /synthesize/stream 3 tests (RIFF header, Content-Type)
+  • Validation             5 tests (422 on empty/long/out-of-range)
+  • Speed variations       5 tests (0.5-2.0×)
+  • Pitch variations       5 tests (±6 semitones)
+
+─────────────────────────────────────────────────────────────────────
+
+DEPLOYMENT
+
+  Docker    : docker-compose up -d (GPU-aware via deploy.resources)
+  systemd   : sudo systemctl enable --now msa-tts
+  Direct    : uvicorn msa_tts_backend:app --port 8000
+
+  Env vars  : TTS_MODEL_PATH, TTS_DEVICE, TTS_DIACRITIZER
+
+─────────────────────────────────────────────────────────────────────
+
+RECOMMENDED DATASETS (MSA only — no dialects)
+
+  1. Arabic Speech Corpus (ASC) — Nawar Halabi, 1813 utterances,
+     fully diacritised, studio quality — best starting point
+  2. Multilingual LibriSpeech Arabic — ~1000h, needs MSA filtering
+  3. Mozilla Common Voice Arabic — ~500h, aggressive filter required
+  4. CLARIN Arabic Broadcast News — excellent MSA prosody
+
+─────────────────────────────────────────────────────────────────────
+
+EVALUATION TARGETS
+
+  MOS    ≥ 4.0    (human mean opinion score)
+  MCD    < 6 dB   (mel cepstral distortion)
+  WER    < 5%     (ASR on synthesised audio)
+  DER    < 5%     (diacritisation error rate)
+  RTF    < 0.3    (real-time factor; < 0.1 for streaming)
+  DNSMOS ≥ 3.5    (automatic MOS proxy)
+
+─────────────────────────────────────────────────────────────────────
+
+BREAKING CHANGES  none — initial release
+

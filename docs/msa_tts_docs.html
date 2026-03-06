@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSA Arabic TTS — Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Code+Pro:wght@400;500;600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0b0f0e;
+  --surface:   #111815;
+  --surface2:  #162019;
+  --border:    rgba(74,180,120,0.18);
+  --green:     #4ab478;
+  --green-dim: #2d7a50;
+  --green-glow:#6de8a0;
+  --amber:     #e8b44a;
+  --amber-dim: #a07020;
+  --red:       #e05050;
+  --text:      #d4e8dc;
+  --muted:     #5a7a65;
+  --code-bg:   #0d1a12;
+  --font-head: 'Playfair Display', Georgia, serif;
+  --font-body: 'Lato', sans-serif;
+  --font-mono: 'Source Code Pro', monospace;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-weight:300;
+  line-height:1.75;
+  min-height:100vh;
+}
+
+/* ── Grid scanline texture ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(
+    0deg,transparent,transparent 2px,
+    rgba(74,180,120,0.012) 2px,rgba(74,180,120,0.012) 3px
+  );
+  pointer-events:none;z-index:0;
+}
+
+/* ── Layout ── */
+.shell{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  min-height:100vh;
+  position:relative;z-index:1;
+}
+@media(max-width:860px){.shell{grid-template-columns:1fr}}
+
+/* ── Sidebar ── */
+nav{
+  position:sticky;top:0;height:100vh;
+  overflow-y:auto;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:0 0 40px;
+  flex-shrink:0;
+}
+@media(max-width:860px){nav{display:none}}
+nav::-webkit-scrollbar{width:3px}
+nav::-webkit-scrollbar-thumb{background:var(--border)}
+
+.nav-brand{
+  padding:28px 24px 20px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:12px;
+}
+.nav-logo{
+  font-family:var(--font-head);
+  font-size:1.1rem;
+  font-weight:700;
+  color:var(--green);
+  line-height:1.3;
+}
+.nav-sub{
+  font-size:0.65rem;
+  color:var(--muted);
+  font-family:var(--font-mono);
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  margin-top:4px;
+}
+
+.nav-section-label{
+  font-size:0.6rem;
+  font-family:var(--font-mono);
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  color:var(--muted);
+  padding:16px 24px 6px;
+}
+nav a{
+  display:block;
+  padding:6px 24px 6px 28px;
+  font-size:0.83rem;
+  color:rgba(212,232,220,0.6);
+  text-decoration:none;
+  border-left:2px solid transparent;
+  transition:all 0.18s;
+  position:relative;
+}
+nav a:hover{color:var(--green);border-left-color:var(--green-dim);background:rgba(74,180,120,0.04)}
+nav a.active{color:var(--green-glow);border-left-color:var(--green);font-weight:400}
+nav a .nav-tag{
+  font-size:0.58rem;font-family:var(--font-mono);
+  background:rgba(74,180,120,0.12);color:var(--green-dim);
+  border:1px solid rgba(74,180,120,0.2);
+  padding:1px 5px;border-radius:2px;
+  margin-right:4px;vertical-align:middle;
+}
+
+/* ── Main Content ── */
+main{
+  max-width:860px;
+  padding:60px 56px 100px;
+  overflow-x:hidden;
+}
+@media(max-width:1100px){main{padding:40px 32px 80px}}
+@media(max-width:600px){main{padding:28px 18px 60px}}
+
+/* ── Section anchors ── */
+section{
+  padding-top:20px;
+  margin-bottom:72px;
+}
+section:first-child{padding-top:0}
+
+/* ── Hero ── */
+.hero{
+  margin-bottom:72px;
+  padding-bottom:48px;
+  border-bottom:1px solid var(--border);
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--font-mono);font-size:0.7rem;
+  color:var(--green);border:1px solid rgba(74,180,120,0.3);
+  padding:4px 12px;border-radius:2px;margin-bottom:24px;
+  background:rgba(74,180,120,0.05);
+  letter-spacing:0.08em;text-transform:uppercase;
+}
+.hero-badge::before{
+  content:'';display:block;width:6px;height:6px;
+  border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+h1.hero-title{
+  font-family:var(--font-head);
+  font-size:clamp(2.4rem,5vw,3.8rem);
+  font-weight:900;
+  line-height:1.1;
+  color:#fff;
+  margin-bottom:20px;
+  letter-spacing:-0.02em;
+}
+h1.hero-title em{
+  font-style:italic;
+  background:linear-gradient(135deg,var(--green-glow),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+.hero-desc{
+  font-size:1.05rem;color:rgba(212,232,220,0.7);
+  max-width:580px;margin-bottom:32px;line-height:1.8;
+}
+
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.badge{
+  font-family:var(--font-mono);font-size:0.68rem;
+  padding:4px 10px;border-radius:2px;letter-spacing:0.06em;
+  background:rgba(74,180,120,0.08);border:1px solid rgba(74,180,120,0.2);
+  color:var(--green);
+}
+.badge.amber{background:rgba(232,180,74,0.08);border-color:rgba(232,180,74,0.2);color:var(--amber)}
+
+.file-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;
+  margin-top:28px;
+}
+.file-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:2px;padding:14px 16px;
+  transition:border-color 0.2s,background 0.2s;
+}
+.file-card:hover{border-color:rgba(74,180,120,0.4);background:rgba(74,180,120,0.04)}
+.file-card-name{font-family:var(--font-mono);font-size:0.75rem;color:var(--green);margin-bottom:4px}
+.file-card-desc{font-size:0.75rem;color:var(--muted);line-height:1.4}
+.file-card-size{font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);margin-top:6px;opacity:0.7}
+
+/* ── Headings ── */
+h2{
+  font-family:var(--font-head);font-size:2rem;font-weight:700;
+  color:#fff;margin-bottom:20px;
+  padding-bottom:12px;border-bottom:1px solid var(--border);
+  letter-spacing:-0.01em;
+}
+h3{
+  font-family:var(--font-head);font-size:1.3rem;font-weight:700;
+  color:var(--green-glow);margin:36px 0 14px;
+}
+h4{
+  font-family:var(--font-mono);font-size:0.85rem;font-weight:600;
+  color:var(--amber);text-transform:uppercase;letter-spacing:0.08em;
+  margin:24px 0 10px;
+}
+
+p{margin-bottom:14px;color:rgba(212,232,220,0.82)}
+p:last-child{margin-bottom:0}
+
+/* ── Step Cards ── */
+.steps{display:flex;flex-direction:column;gap:0}
+.step{
+  display:grid;grid-template-columns:52px 1fr;
+  gap:0 20px;
+  position:relative;
+}
+.step::after{
+  content:'';position:absolute;
+  left:25px;top:52px;bottom:0;width:1px;
+  background:linear-gradient(180deg,var(--green-dim),transparent);
+}
+.step:last-child::after{display:none}
+.step-num{
+  width:52px;height:52px;
+  border:2px solid var(--green-dim);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:1rem;font-weight:600;
+  color:var(--green);flex-shrink:0;
+  background:var(--surface2);
+  position:relative;z-index:1;
+}
+.step-body{padding:10px 0 40px}
+.step-title{
+  font-family:var(--font-head);font-size:1.1rem;font-weight:700;
+  color:#fff;margin-bottom:8px;line-height:1.3;
+}
+.step-desc{font-size:0.9rem;color:rgba(212,232,220,0.7);line-height:1.7}
+
+/* ── Code blocks ── */
+.code-wrap{
+  background:var(--code-bg);
+  border:1px solid rgba(74,180,120,0.15);
+  border-radius:3px;
+  margin:14px 0 18px;
+  overflow:hidden;
+}
+.code-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;
+  background:rgba(74,180,120,0.05);
+  border-bottom:1px solid rgba(74,180,120,0.1);
+}
+.code-lang{font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em}
+.copy-btn{
+  font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);
+  background:none;border:1px solid rgba(74,180,120,0.15);
+  padding:3px 10px;border-radius:2px;cursor:pointer;
+  transition:all 0.18s;letter-spacing:0.06em;text-transform:uppercase;
+}
+.copy-btn:hover{color:var(--green);border-color:rgba(74,180,120,0.4)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+pre{
+  padding:18px 20px;overflow-x:auto;
+  font-family:var(--font-mono);font-size:0.82rem;
+  line-height:1.7;color:rgba(212,232,220,0.85);
+}
+pre::-webkit-scrollbar{height:3px}
+pre::-webkit-scrollbar-thumb{background:var(--border)}
+.hl-cmd{color:var(--green-glow)}
+.hl-flag{color:var(--amber)}
+.hl-str{color:#a8d8b8}
+.hl-comment{color:var(--muted)}
+.hl-num{color:#c8a8e8}
+.hl-kw{color:var(--amber)}
+.hl-arabic{color:#f0d090;font-size:1rem}
+
+/* ── Pipeline diagram ── */
+.pipeline-diagram{
+  display:flex;align-items:stretch;gap:0;
+  margin:20px 0;overflow-x:auto;
+  border:1px solid var(--border);border-radius:3px;
+  background:var(--surface2);
+}
+.pipe-stage{
+  flex:1;min-width:100px;
+  padding:18px 12px;text-align:center;
+  border-right:1px solid var(--border);
+  position:relative;
+}
+.pipe-stage:last-child{border-right:none}
+.pipe-stage::after{
+  content:'→';
+  position:absolute;right:-10px;top:50%;transform:translateY(-50%);
+  color:var(--green-dim);font-size:0.8rem;z-index:2;
+}
+.pipe-stage:last-child::after{display:none}
+.pipe-icon{font-size:1.4rem;margin-bottom:6px;display:block}
+.pipe-name{font-family:var(--font-mono);font-size:0.65rem;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.pipe-detail{font-size:0.68rem;color:var(--muted);line-height:1.4}
+
+/* ── Comparison table ── */
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:0.85rem}
+th{
+  font-family:var(--font-mono);font-size:0.65rem;text-transform:uppercase;
+  letter-spacing:0.1em;color:var(--muted);
+  padding:10px 14px;border-bottom:2px solid var(--border);
+  text-align:left;
+}
+td{
+  padding:10px 14px;border-bottom:1px solid rgba(74,180,120,0.07);
+  color:rgba(212,232,220,0.8);vertical-align:middle;
+}
+tr:hover td{background:rgba(74,180,120,0.03)}
+.td-best{color:var(--green-glow);font-weight:700}
+.star{color:var(--amber)}
+
+/* ── FAQ Accordion ── */
+.faq{display:flex;flex-direction:column;gap:2px}
+.faq-item{
+  border:1px solid var(--border);border-radius:2px;
+  overflow:hidden;
+  transition:border-color 0.2s;
+}
+.faq-item.open{border-color:rgba(74,180,120,0.35)}
+.faq-q{
+  width:100%;background:var(--surface2);border:none;
+  padding:16px 20px;text-align:left;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;font-size:0.92rem;font-family:var(--font-body);font-weight:400;
+  color:var(--text);transition:background 0.18s;
+}
+.faq-q:hover{background:rgba(74,180,120,0.06)}
+.faq-icon{
+  color:var(--green-dim);font-size:1.1rem;flex-shrink:0;
+  transition:transform 0.25s;font-family:var(--font-mono);
+}
+.faq-item.open .faq-icon{transform:rotate(45deg);color:var(--green)}
+.faq-a{
+  max-height:0;overflow:hidden;
+  transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),padding 0.25s;
+  padding:0 20px;background:var(--code-bg);
+  font-size:0.87rem;color:rgba(212,232,220,0.75);line-height:1.75;
+}
+.faq-item.open .faq-a{max-height:600px;padding:16px 20px}
+
+/* ── Demo section ── */
+.demo-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:3px;overflow:hidden;
+}
+.demo-toolbar{
+  background:rgba(74,180,120,0.05);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;gap:8px;
+}
+.demo-dot{width:10px;height:10px;border-radius:50%}
+.demo-dot.r{background:#e05050}.demo-dot.y{background:var(--amber)}.demo-dot.g{background:var(--green)}
+.demo-title{font-family:var(--font-mono);font-size:0.68rem;color:var(--muted);margin-right:auto;text-transform:uppercase;letter-spacing:0.08em}
+
+.demo-body{padding:24px}
+
+.demo-textarea{
+  width:100%;min-height:100px;
+  background:rgba(0,0,0,0.4);
+  border:1px solid var(--border);border-radius:2px;
+  color:var(--text);font-family:'Amiri',serif;font-size:1.3rem;
+  padding:14px 16px;resize:vertical;direction:rtl;
+  outline:none;line-height:2;
+  transition:border-color 0.2s;caret-color:var(--green);
+}
+.demo-textarea::placeholder{color:rgba(90,122,101,0.5);font-style:italic}
+.demo-textarea:focus{border-color:rgba(74,180,120,0.4)}
+
+.demo-controls{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap;align-items:center}
+.demo-slider-wrap{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:0.72rem;color:var(--muted)}
+.demo-val{color:var(--green-glow);min-width:32px}
+input[type=range].demo-range{
+  -webkit-appearance:none;width:100px;height:3px;
+  background:rgba(74,180,120,0.2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range].demo-range::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 6px rgba(74,180,120,0.5);
+}
+
+.demo-btn{
+  padding:10px 24px;
+  background:linear-gradient(135deg,var(--green-dim),var(--green));
+  border:none;border-radius:2px;color:#0b0f0e;
+  font-family:var(--font-mono);font-size:0.78rem;font-weight:600;
+  cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;
+  transition:all 0.2s;box-shadow:0 2px 16px rgba(74,180,120,0.2);
+}
+.demo-btn:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(74,180,120,0.35)}
+.demo-btn:active{transform:translateY(0)}
+.demo-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+
+.demo-phrases{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.demo-phrase{
+  background:rgba(74,180,120,0.06);border:1px solid rgba(74,180,120,0.15);
+  color:rgba(212,232,220,0.6);font-size:0.78rem;
+  padding:4px 12px;border-radius:100px;cursor:pointer;
+  transition:all 0.18s;font-family:'Amiri',serif;direction:rtl;
+}
+.demo-phrase:hover{background:rgba(74,180,120,0.14);color:var(--green);border-color:rgba(74,180,120,0.4)}
+
+.demo-output{
+  margin-top:16px;border-top:1px solid var(--border);padding-top:16px;
+  display:none;
+}
+.demo-output.show{display:block;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.output-row{display:flex;gap:12px;flex-direction:column}
+.output-label{font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.output-text{
+  background:rgba(0,0,0,0.3);border:1px solid var(--border);
+  border-radius:2px;padding:10px 14px;font-family:var(--font-mono);font-size:0.78rem;
+  color:rgba(74,180,120,0.9);word-break:break-all;line-height:1.7;
+}
+.output-arabic{
+  font-family:'Amiri',serif;font-size:1.15rem;direction:rtl;
+  color:var(--text);line-height:2;
+}
+
+.waveform-mini{
+  height:48px;background:rgba(0,0,0,0.3);border:1px solid var(--border);
+  border-radius:2px;overflow:hidden;position:relative;
+}
+.waveform-mini canvas{width:100%;height:100%;display:block}
+
+.player-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.mini-play{
+  width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--green-dim);background:none;color:var(--green);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;transition:all 0.18s;flex-shrink:0;
+}
+.mini-play:hover{background:rgba(74,180,120,0.1);box-shadow:0 0 12px rgba(74,180,120,0.2)}
+.mini-time{font-family:var(--font-mono);font-size:0.7rem;color:var(--muted)}
+.mini-dl{
+  margin-left:auto;font-family:var(--font-mono);font-size:0.62rem;
+  color:var(--muted);background:none;border:1px solid var(--border);
+  padding:5px 12px;border-radius:2px;cursor:pointer;transition:all 0.18s;
+  text-transform:uppercase;letter-spacing:0.06em;
+}
+.mini-dl:hover{color:var(--green);border-color:rgba(74,180,120,0.4)}
+
+.metrics-mini{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.metric-chip{
+  font-family:var(--font-mono);font-size:0.65rem;
+  background:rgba(74,180,120,0.06);border:1px solid rgba(74,180,120,0.15);
+  padding:4px 10px;border-radius:2px;color:var(--muted);
+}
+.metric-chip span{color:var(--green-glow)}
+
+/* ── Callout boxes ── */
+.callout{
+  border-left:3px solid;border-radius:0 2px 2px 0;
+  padding:14px 18px;margin:18px 0;font-size:0.88rem;line-height:1.7;
+}
+.callout.info{border-color:var(--green);background:rgba(74,180,120,0.06);color:rgba(212,232,220,0.8)}
+.callout.warn{border-color:var(--amber);background:rgba(232,180,74,0.06);color:rgba(232,180,74,0.85)}
+.callout.tip{border-color:var(--green-glow);background:rgba(109,232,160,0.05);color:rgba(212,232,220,0.8)}
+.callout-head{font-family:var(--font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-weight:600}
+.callout.info .callout-head{color:var(--green)}
+.callout.warn .callout-head{color:var(--amber)}
+.callout.tip .callout-head{color:var(--green-glow)}
+
+/* ── Endpoint ref ── */
+.endpoint-list{display:flex;flex-direction:column;gap:8px}
+.endpoint{
+  display:flex;align-items:flex-start;gap:12px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:2px;padding:12px 16px;
+}
+.ep-method{
+  font-family:var(--font-mono);font-size:0.65rem;font-weight:600;
+  padding:3px 8px;border-radius:2px;flex-shrink:0;margin-top:1px;
+  text-transform:uppercase;letter-spacing:0.06em;
+}
+.ep-get{background:rgba(74,180,120,0.12);color:var(--green)}
+.ep-post{background:rgba(232,180,74,0.12);color:var(--amber)}
+.ep-path{font-family:var(--font-mono);font-size:0.82rem;color:var(--text)}
+.ep-desc{font-size:0.78rem;color:var(--muted);margin-top:3px}
+
+/* ── Inline code ── */
+code{
+  font-family:var(--font-mono);font-size:0.82em;
+  background:rgba(74,180,120,0.1);color:var(--green);
+  padding:1px 6px;border-radius:2px;
+}
+
+/* ── Arabic display ── */
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+.arabic{font-family:'Amiri',serif;direction:rtl;font-size:1.1em;color:#f0d090}
+.phoneme{font-family:var(--font-mono);color:var(--green);font-size:0.85em}
+
+/* ── Progress/loading ── */
+.spinner{
+  display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(74,180,120,0.2);border-top-color:var(--green);
+  border-radius:50%;animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Scroll progress bar ── */
+#scroll-bar{
+  position:fixed;top:0;left:0;height:2px;width:0%;
+  background:linear-gradient(90deg,var(--green-dim),var(--green-glow));
+  z-index:999;transition:width 0.05s linear;
+}
+
+/* ── Mobile nav toggle ── */
+.mob-nav-toggle{display:none}
+@media(max-width:860px){
+  .mob-nav-toggle{
+    display:flex;align-items:center;gap:10px;
+    position:fixed;bottom:20px;right:20px;z-index:100;
+    background:var(--green);color:#0b0f0e;border:none;
+    padding:10px 18px;border-radius:100px;font-family:var(--font-mono);
+    font-size:0.75rem;cursor:pointer;box-shadow:0 4px 20px rgba(74,180,120,0.4);
+  }
+}
+</style>
+</head>
+<body>
+<div id="scroll-bar"></div>
+
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<nav id="sidebar">
+  <div class="nav-brand">
+    <div class="nav-logo">MSA Arabic TTS</div>
+    <div class="nav-sub">Documentation v1.0</div>
+  </div>
+
+  <div class="nav-section-label">Overview</div>
+  <a href="#overview" class="active">Introduction</a>
+  <a href="#files">File Reference</a>
+  <a href="#architecture">Architecture</a>
+
+  <div class="nav-section-label">Getting Started</div>
+  <a href="#quickstart"><span class="nav-tag">1</span>Quick Start</a>
+  <a href="#setup"><span class="nav-tag">2</span>Full Setup</a>
+  <a href="#launcher"><span class="nav-tag">3</span>Launcher Menu</a>
+  <a href="#server"><span class="nav-tag">4</span>Running the Server</a>
+  <a href="#frontend"><span class="nav-tag">5</span>Web Frontend</a>
+
+  <div class="nav-section-label">Tutorial</div>
+  <a href="#tutorial-normalize">Text Normalization</a>
+  <a href="#tutorial-diac">Diacritization</a>
+  <a href="#tutorial-g2p">G2P Conversion</a>
+  <a href="#tutorial-synth">Synthesis</a>
+  <a href="#tutorial-train">Training</a>
+
+  <div class="nav-section-label">Reference</div>
+  <a href="#api">API Endpoints</a>
+  <a href="#demo">Live Demo</a>
+  <a href="#models">Model Comparison</a>
+  <a href="#datasets">Datasets</a>
+  <a href="#metrics">Evaluation</a>
+
+  <div class="nav-section-label">Help</div>
+  <a href="#faq">FAQ</a>
+  <a href="#troubleshoot">Troubleshooting</a>
+  <a href="#deploy">Deployment</a>
+</nav>
+
+<!-- ── Main ── -->
+<main>
+
+<!-- Hero -->
+<section id="overview">
+  <div class="hero">
+    <div class="hero-badge">v1.0 · Production Ready</div>
+    <h1 class="hero-title">Modern Standard<br><em>Arabic TTS</em></h1>
+    <p class="hero-desc">
+      A complete production pipeline for high-quality Modern Standard Arabic speech synthesis.
+      Built on VITS end-to-end architecture with HiFi-GAN vocoding,
+      full Arabic NLP pre-processing, and a FastAPI inference server.
+    </p>
+    <div class="badge-row">
+      <span class="badge">VITS Architecture</span>
+      <span class="badge">HiFi-GAN Vocoder</span>
+      <span class="badge">CAMeL Diacritizer</span>
+      <span class="badge">FastAPI Backend</span>
+      <span class="badge amber">MSA Only · No Dialects</span>
+      <span class="badge">22050 Hz</span>
+      <span class="badge">PyTorch 2.2+</span>
+    </div>
+
+    <div class="file-grid">
+      <div class="file-card">
+        <div class="file-card-name">msa_tts_backend.py</div>
+        <div class="file-card-desc">FastAPI server — full 8-stage NLP + synthesis pipeline</div>
+        <div class="file-card-size">~40 KB · Python</div>
+      </div>
+      <div class="file-card">
+        <div class="file-card-name">msa_tts_frontend.html</div>
+        <div class="file-card-desc">RTL web app — waveform player, controls, pipeline view</div>
+        <div class="file-card-size">~40 KB · HTML/CSS/JS</div>
+      </div>
+      <div class="file-card">
+        <div class="file-card-name">msa_tts_launcher.sh</div>
+        <div class="file-card-desc">Bash launcher — 7 menus, 50+ options, full lifecycle</div>
+        <div class="file-card-size">~55 KB · Bash</div>
+      </div>
+      <div class="file-card">
+        <div class="file-card-name">requirements.txt</div>
+        <div class="file-card-desc">Python dependencies list</div>
+        <div class="file-card-size">~1 KB · pip</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section id="architecture">
+  <h2>Pipeline Architecture</h2>
+  <p>Every input text passes through 6 stages before becoming audio. Each stage is independently testable via its own API endpoint.</p>
+
+  <div class="pipeline-diagram">
+    <div class="pipe-stage">
+      <span class="pipe-icon">📝</span>
+      <div class="pipe-name">Normalize</div>
+      <div class="pipe-detail">Numbers, tatweel, abbreviations</div>
+    </div>
+    <div class="pipe-stage">
+      <span class="pipe-icon">◌ّ</span>
+      <div class="pipe-name">Diacritize</div>
+      <div class="pipe-detail">CAMeL BERT or Mishkal</div>
+    </div>
+    <div class="pipe-stage">
+      <span class="pipe-icon">🔤</span>
+      <div class="pipe-name">G2P</div>
+      <div class="pipe-detail">28 consonants + vowels</div>
+    </div>
+    <div class="pipe-stage">
+      <span class="pipe-icon">🎛</span>
+      <div class="pipe-name">VITS</div>
+      <div class="pipe-detail">Acoustic model + flow</div>
+    </div>
+    <div class="pipe-stage">
+      <span class="pipe-icon">🔊</span>
+      <div class="pipe-name">HiFi-GAN</div>
+      <div class="pipe-detail">Neural vocoder</div>
+    </div>
+    <div class="pipe-stage">
+      <span class="pipe-icon">🎵</span>
+      <div class="pipe-name">WAV</div>
+      <div class="pipe-detail">22050 Hz output</div>
+    </div>
+  </div>
+
+  <h3>Why VITS over alternatives?</h3>
+  <table>
+    <tr><th>Model</th><th>Latency</th><th>Quality</th><th>Arabic</th><th>Complexity</th></tr>
+    <tr>
+      <td class="td-best">VITS ✦</td>
+      <td>⚡ Fast</td>
+      <td><span class="star">★★★★★</span></td>
+      <td class="td-best">Excellent</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>FastSpeech 2</td>
+      <td>⚡⚡ Fastest</td>
+      <td><span class="star">★★★</span></td>
+      <td>Moderate</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Tacotron 2</td>
+      <td>🐢 Slow</td>
+      <td><span class="star">★★★★</span></td>
+      <td>Good</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Glow-TTS</td>
+      <td>⚡ Fast</td>
+      <td><span class="star">★★★★</span></td>
+      <td>Good</td>
+      <td>High</td>
+    </tr>
+  </table>
+
+  <div class="callout info">
+    <div class="callout-head">Why VITS wins for Arabic</div>
+    VITS combines the acoustic model and HiFi-GAN vocoder into a single end-to-end model,
+    eliminating the error accumulation between separate stages. Its stochastic duration predictor
+    handles Arabic's complex prosodic structure significantly better than autoregressive alternatives.
+  </div>
+</section>
+
+<!-- Quick Start -->
+<section id="quickstart">
+  <h2>Quick Start</h2>
+  <p>The fastest path from zero to working TTS — under 2 minutes.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Unzip and make launcher executable</div>
+        <div class="step-desc">Extract the package and grant execute permission to the launcher script.</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-cmd">unzip</span> msa_tts_system.zip
+<span class="hl-cmd">cd</span> msa_tts_delivery
+<span class="hl-cmd">chmod</span> <span class="hl-flag">+x</span> msa_tts_launcher.sh</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Open the interactive menu</div>
+        <div class="step-desc">The launcher detects your environment and shows all available options.</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-cmd">./msa_tts_launcher.sh</span>
+
+<span class="hl-comment"># Or use direct commands:</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> setup      <span class="hl-comment"># full setup</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> start      <span class="hl-comment"># start API server</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> test       <span class="hl-comment"># run test suite</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> benchmark  <span class="hl-comment"># RTF benchmark</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> --help     <span class="hl-comment"># all shortcuts</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Open the web frontend</div>
+        <div class="step-desc">Open <code>msa_tts_frontend.html</code> directly in any browser. It works in <strong>demo mode</strong> immediately — no backend needed to hear audio.</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-comment"># macOS</span>
+<span class="hl-cmd">open</span> msa_tts_frontend.html
+
+<span class="hl-comment"># Linux</span>
+<span class="hl-cmd">xdg-open</span> msa_tts_frontend.html
+
+<span class="hl-comment"># Windows</span>
+<span class="hl-cmd">start</span> msa_tts_frontend.html</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Connect to a real backend (optional)</div>
+        <div class="step-desc">For real VITS synthesis, start the API server and update the <code>API_BASE</code> in the frontend JS.</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-comment"># Start the API server</span>
+<span class="hl-cmd">pip install</span> <span class="hl-flag">-r</span> requirements.txt
+<span class="hl-cmd">uvicorn</span> msa_tts_backend:app <span class="hl-flag">--host</span> 0.0.0.0 <span class="hl-flag">--port</span> 8000
+
+<span class="hl-comment"># In msa_tts_frontend.html, find and update:</span>
+<span class="hl-kw">const</span> API_BASE = <span class="hl-str">"http://localhost:8000"</span>;</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Full Setup -->
+<section id="setup">
+  <h2>Full Setup Guide</h2>
+
+  <h3>System Requirements</h3>
+  <table>
+    <tr><th>Component</th><th>Minimum</th><th>Recommended</th></tr>
+    <tr><td>Python</td><td>3.10</td><td>3.11+</td></tr>
+    <tr><td>RAM</td><td>8 GB</td><td>16 GB</td></tr>
+    <tr><td>GPU</td><td>Optional (CPU works)</td><td>NVIDIA RTX 3080+ (training)</td></tr>
+    <tr><td>VRAM</td><td>—</td><td>8 GB+</td></tr>
+    <tr><td>Disk</td><td>5 GB</td><td>50 GB (with datasets)</td></tr>
+    <tr><td>OS</td><td>Linux / macOS</td><td>Ubuntu 22.04+</td></tr>
+  </table>
+
+  <h3>Step-by-step installation</h3>
+
+  <h4>1 · Virtual environment</h4>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">python3</span> <span class="hl-flag">-m</span> venv venv
+<span class="hl-cmd">source</span> venv/bin/activate   <span class="hl-comment"># Linux/macOS</span>
+<span class="hl-comment"># venv\Scripts\activate    # Windows</span></pre>
+  </div>
+
+  <h4>2 · Core dependencies</h4>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">pip install</span> <span class="hl-flag">-r</span> requirements.txt
+
+<span class="hl-comment"># GPU build (CUDA 12.1):</span>
+<span class="hl-cmd">pip install</span> torch torchaudio <span class="hl-flag">--index-url</span> https://download.pytorch.org/whl/cu121</pre>
+  </div>
+
+  <h4>3 · Arabic NLP — diacritizer</h4>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-comment"># Option A: CAMeL Tools (best accuracy, ~95% DER)</span>
+<span class="hl-cmd">pip install</span> camel-tools
+<span class="hl-cmd">camel_data</span> <span class="hl-flag">-i</span> defaults   <span class="hl-comment"># downloads ~2 GB of MSA models</span>
+
+<span class="hl-comment"># Option B: Mishkal (rule-based, faster, ~88% DER)</span>
+<span class="hl-cmd">pip install</span> mishkal</pre>
+  </div>
+
+  <h4>4 · VITS from source</h4>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">git clone</span> https://github.com/jaywalnut310/vits.git
+<span class="hl-cmd">cd</span> vits
+<span class="hl-cmd">pip install</span> <span class="hl-flag">-e</span> .
+
+<span class="hl-comment"># Compile monotonic alignment (required for training)</span>
+<span class="hl-cmd">cd</span> monotonic_align
+<span class="hl-cmd">python</span> setup.py build_ext <span class="hl-flag">--inplace</span>
+<span class="hl-cmd">cd</span> ..</pre>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-head">Note on CAMeL Data</div>
+    The <code>camel_data -i defaults</code> download takes 5–15 minutes depending on connection speed.
+    The launcher menu (Setup → 4) handles this automatically and shows progress.
+  </div>
+</section>
+
+<!-- Launcher -->
+<section id="launcher">
+  <h2>Launcher Menu Reference</h2>
+  <p>The launcher provides an interactive TUI with 7 menus covering the entire system lifecycle.</p>
+
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">./msa_tts_launcher.sh</span>
+
+  <span class="hl-comment">Main Menu:</span>
+  1)  ⚙   Setup &amp; Installation
+  2)  🚀  Server Management
+  3)  🧠  Model Training
+  4)  🔊  Inference &amp; Testing
+  5)  ⚙   Configuration
+  6)  📊  Monitoring &amp; Diagnostics
+  7)  🐳  Deployment
+
+  s)  Quick start server
+  x)  Stop server &amp; exit
+  q)  Quit</pre>
+  </div>
+
+  <table>
+    <tr><th>Menu</th><th>Key options</th></tr>
+    <tr><td><strong>1 — Setup</strong></td><td>Create venv, install deps, download CAMeL data, install VITS, check GPU, full auto-setup, verify all</td></tr>
+    <tr><td><strong>2 — Server</strong></td><td>Start/stop/restart, Docker mode, live log tail, error filter, health check, serve frontend, dev mode</td></tr>
+    <tr><td><strong>3 — Training</strong></td><td>Preprocess dataset, train VITS, resume checkpoint, TensorBoard, evaluate, ONNX export, list checkpoints</td></tr>
+    <tr><td><strong>4 — Inference</strong></td><td>Interactive synthesis, batch synthesis, test diacritizer/G2P/normalizer, RTF benchmark, test suite, pipeline shell</td></tr>
+    <tr><td><strong>5 — Config</strong></td><td>Set host, port, workers, device, diacritizer, log level, model path — all persisted to <code>.tts_config</code></td></tr>
+    <tr><td><strong>6 — Monitor</strong></td><td>CPU/RAM, GPU utilisation, API smoke test, log management, Python env info, disk usage</td></tr>
+    <tr><td><strong>7 — Deploy</strong></td><td>Dockerfile, Docker build/run, docker-compose, nginx config, systemd service, gunicorn config, push to registry</td></tr>
+  </table>
+</section>
+
+<!-- Server -->
+<section id="server">
+  <h2>Running the API Server</h2>
+
+  <h3>Using the launcher (recommended)</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">./msa_tts_launcher.sh</span> start    <span class="hl-comment"># start in background</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> status   <span class="hl-comment"># health check</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> stop     <span class="hl-comment"># graceful shutdown</span></pre>
+  </div>
+
+  <h3>Direct uvicorn</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">uvicorn</span> msa_tts_backend:app \
+  <span class="hl-flag">--host</span> 0.0.0.0 \
+  <span class="hl-flag">--port</span> 8000 \
+  <span class="hl-flag">--workers</span> 1 \
+  <span class="hl-flag">--log-level</span> info
+
+<span class="hl-comment"># With custom model path:</span>
+<span class="hl-kw">TTS_MODEL_PATH</span>=checkpoints/G_latest.pth \
+<span class="hl-kw">TTS_DEVICE</span>=cuda \
+<span class="hl-cmd">uvicorn</span> msa_tts_backend:app <span class="hl-flag">--port</span> 8000</pre>
+  </div>
+
+  <h3>Environment variables</h3>
+  <table>
+    <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>TTS_MODEL_PATH</code></td><td>None</td><td>Path to VITS checkpoint <code>.pth</code></td></tr>
+    <tr><td><code>TTS_DEVICE</code></td><td>auto</td><td><code>auto</code> / <code>cpu</code> / <code>cuda</code> / <code>mps</code></td></tr>
+    <tr><td><code>TTS_DIACRITIZER</code></td><td>auto</td><td><code>auto</code> / <code>camel</code> / <code>mishkal</code></td></tr>
+  </table>
+
+  <p>Once running, visit <code>http://localhost:8000/docs</code> for the interactive Swagger UI.</p>
+</section>
+
+<!-- Frontend -->
+<section id="frontend">
+  <h2>Web Frontend</h2>
+  <p>Open <code>msa_tts_frontend.html</code> in any modern browser. No build step, no install.</p>
+
+  <h3>Demo mode</h3>
+  <div class="callout tip">
+    <div class="callout-head">Works offline, right now</div>
+    The frontend generates real audio locally using the Web Audio API when the backend is not reachable.
+    This lets you explore the UI, test controls, and hear something immediately — before any model is trained.
+  </div>
+
+  <h3>Connecting to your backend</h3>
+  <p>Edit line 1 of the <code>&lt;script&gt;</code> section in <code>msa_tts_frontend.html</code>:</p>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">javascript</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-comment">// Change this to your server address:</span>
+<span class="hl-kw">const</span> API_BASE = <span class="hl-str">"http://localhost:8000"</span>;
+
+<span class="hl-comment">// Production example:</span>
+<span class="hl-kw">const</span> API_BASE = <span class="hl-str">"https://tts.yourserver.com"</span>;</pre>
+  </div>
+
+  <h3>Features</h3>
+  <table>
+    <tr><th>Feature</th><th>Description</th></tr>
+    <tr><td>RTL Textarea</td><td>Right-to-left Arabic input with example phrases</td></tr>
+    <tr><td>Pipeline Animator</td><td>Visual indicator showing which stage is active</td></tr>
+    <tr><td>Speed control</td><td>0.5× to 2.0× speaking rate</td></tr>
+    <tr><td>Pitch control</td><td>±6 semitone shift</td></tr>
+    <tr><td>Variation</td><td>Prosodic variation (noise_scale 0–1)</td></tr>
+    <tr><td>Auto-Diacritize toggle</td><td>Enable/disable automatic tashkeel</td></tr>
+    <tr><td>Show Phonemes</td><td>Display G2P output below audio</td></tr>
+    <tr><td>Waveform player</td><td>Click-to-play with progress scrubbing</td></tr>
+    <tr><td>Download WAV</td><td>Save synthesized audio</td></tr>
+    <tr><td>Metrics panel</td><td>Duration, RTF, diacritizer backend, sample rate</td></tr>
+  </table>
+</section>
+
+<!-- Tutorial: Normalization -->
+<section id="tutorial-normalize">
+  <h2>Tutorial: Text Normalization</h2>
+  <p>The normalizer converts raw Arabic text into clean, speakable text before any NLP processing.</p>
+
+  <h3>What it handles</h3>
+  <table>
+    <tr><th>Input</th><th>Output</th><th>Rule</th></tr>
+    <tr><td><span class="arabic">لدي 3 كتب</span></td><td><span class="arabic">لدي ثلاثة كتب</span></td><td>Western digit expansion</td></tr>
+    <tr><td><span class="arabic">٥ طلاب</span></td><td><span class="arabic">خمسة طلاب</span></td><td>Eastern digit expansion</td></tr>
+    <tr><td><span class="arabic">العـلـم</span></td><td><span class="arabic">العلم</span></td><td>Tatweel (kashida) removal</td></tr>
+    <tr><td><span class="arabic">د. محمد</span></td><td><span class="arabic">دكتور محمد</span></td><td>Abbreviation expansion</td></tr>
+    <tr><td><span class="arabic">100</span></td><td><span class="arabic">مئة</span></td><td>Hundreds</td></tr>
+    <tr><td><span class="arabic">1000</span></td><td><span class="arabic">ألف</span></td><td>Thousands</td></tr>
+  </table>
+
+  <h3>API usage</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">curl</span> <span class="hl-flag">-X</span> POST http://localhost:8000/normalize \
+  <span class="hl-flag">-H</span> <span class="hl-str">"Content-Type: application/json"</span> \
+  <span class="hl-flag">-d</span> <span class="hl-str">'{"text":"لدي 3 كتب و٥ أقلام"}'</span></pre>
+  </div>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">json</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre>{
+  <span class="hl-str">"normalized"</span>: <span class="hl-str">"لدي ثلاثة كتب وخمسة أقلام"</span>
+}</pre>
+  </div>
+
+  <h3>Python usage</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-kw">from</span> msa_tts_backend <span class="hl-kw">import</span> ArabicTextNormalizer
+
+n = ArabicTextNormalizer()
+text = n.normalize(<span class="hl-str">"لدي 3 كتب"</span>)
+<span class="hl-comment"># → "لدي ثلاثة كتب"</span></pre>
+  </div>
+</section>
+
+<!-- Tutorial: Diacritization -->
+<section id="tutorial-diac">
+  <h2>Tutorial: Diacritization</h2>
+  <p>Arabic written without vowels (undiacritized) is highly ambiguous. The diacritizer adds tashkeel — the short vowel marks — which are essential for correct pronunciation.</p>
+
+  <h3>Example</h3>
+  <table>
+    <tr><th>Without diacritics</th><th>With diacritics (tashkeel)</th></tr>
+    <tr><td><span class="arabic" style="font-size:1.3rem">كتب</span></td><td><span class="arabic" style="font-size:1.3rem">كَتَبَ</span> (he wrote) or <span class="arabic" style="font-size:1.3rem">كُتُبٌ</span> (books)</td></tr>
+    <tr><td><span class="arabic" style="font-size:1.3rem">علم</span></td><td><span class="arabic" style="font-size:1.3rem">عَلِمَ</span> (he knew) or <span class="arabic" style="font-size:1.3rem">عِلْمٌ</span> (knowledge)</td></tr>
+  </table>
+
+  <h3>Backend priority</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">CAMeL Tools (BERT-based)</div>
+        <div class="step-desc">~95% DER accuracy. Uses a fine-tuned BERT model on MSA corpora. Requires <code>camel_data -i defaults</code> download (~2 GB).</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Mishkal (rule-based)</div>
+        <div class="step-desc">~88% DER. Lightweight, no download needed. Fast inference. Good fallback for production environments with limited storage.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Passthrough</div>
+        <div class="step-desc">No diacritization. Used when input is already fully diacritized (auto-detected by ratio check), or when neither NLP library is installed.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>API usage</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">curl</span> <span class="hl-flag">-X</span> POST http://localhost:8000/diacritize \
+  <span class="hl-flag">-H</span> <span class="hl-str">"Content-Type: application/json"</span> \
+  <span class="hl-flag">-d</span> <span class="hl-str">'{"text":"الكتاب مفيد"}'</span></pre>
+  </div>
+</section>
+
+<!-- Tutorial: G2P -->
+<section id="tutorial-g2p">
+  <h2>Tutorial: G2P Conversion</h2>
+  <p>Grapheme-to-phoneme converts diacritized Arabic text into a phoneme sequence that the neural TTS model can process.</p>
+
+  <h3>Arabic phoneme coverage</h3>
+  <table>
+    <tr><th>Category</th><th>Arabic</th><th>Phoneme</th><th>Example</th></tr>
+    <tr><td>Pharyngeals</td><td><span class="arabic">ح ع</span></td><td><span class="phoneme">ħ ʕ</span></td><td>حَمْد، عَرَب</td></tr>
+    <tr><td>Uvulars</td><td><span class="arabic">خ غ ق</span></td><td><span class="phoneme">x ɣ q</span></td><td>خَبَر، غَيْم، قَلَم</td></tr>
+    <tr><td>Emphatics</td><td><span class="arabic">ص ض ط ظ</span></td><td><span class="phoneme">sˤ dˤ tˤ ðˤ</span></td><td>صَبَاح، ضَرَب</td></tr>
+    <tr><td>Glottal</td><td><span class="arabic">ء أ إ</span></td><td><span class="phoneme">ʔ</span></td><td>أَمَل، سُؤَال</td></tr>
+    <tr><td>Fricatives</td><td><span class="arabic">ث ذ ش</span></td><td><span class="phoneme">th ð ʃ</span></td><td>ثَلَج، ذَهَب</td></tr>
+  </table>
+
+  <h3>Sun-letter assimilation</h3>
+  <p>When the definite article <span class="arabic">ال</span> precedes a sun letter, the <span class="arabic">ل</span> assimilates:</p>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">text</span></div>
+    <pre>Input:   <span class="hl-arabic">الشَّمْسُ</span>  (the sun)
+Written: al-shamsu
+Spoken:  <span class="hl-green">ash-shamsu</span>  ← ل assimilates to ش
+
+Input:   <span class="hl-arabic">الْكِتَابُ</span>  (the book)
+Written: al-kitabu
+Spoken:  <span class="hl-green">al-kitabu</span>   ← ك is moon letter, no change</pre>
+  </div>
+
+  <h3>API usage</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-cmd">curl</span> <span class="hl-flag">-X</span> POST http://localhost:8000/g2p \
+  <span class="hl-flag">-H</span> <span class="hl-str">"Content-Type: application/json"</span> \
+  <span class="hl-flag">-d</span> <span class="hl-str">'{"text":"مَرْحَبًا"}'</span>
+
+<span class="hl-comment"># Returns: "m a r ħ a b an aː"</span></pre>
+  </div>
+</section>
+
+<!-- Tutorial: Synthesis -->
+<section id="tutorial-synth">
+  <h2>Tutorial: Speech Synthesis</h2>
+
+  <h3>Basic synthesis</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-kw">import</span> requests, base64
+
+response = requests.post(
+    <span class="hl-str">"http://localhost:8000/synthesize"</span>,
+    json={
+        <span class="hl-str">"text"</span>: <span class="hl-str">"السَّلَامُ عَلَيْكُمْ"</span>,
+        <span class="hl-str">"speed"</span>: <span class="hl-num">1.0</span>,
+        <span class="hl-str">"pitch_shift"</span>: <span class="hl-num">0.0</span>,
+        <span class="hl-str">"noise_scale"</span>: <span class="hl-num">0.667</span>,
+        <span class="hl-str">"return_phonemes"</span>: <span class="hl-kw">True</span>
+    }
+)
+
+data = response.json()
+wav = base64.b64decode(data[<span class="hl-str">"audio_b64"</span>])
+
+<span class="hl-kw">with</span> open(<span class="hl-str">"output.wav"</span>, <span class="hl-str">"wb"</span>) <span class="hl-kw">as</span> f:
+    f.write(wav)
+
+print(<span class="hl-str">f"Duration: {data['duration_s']}s"</span>)
+print(<span class="hl-str">f"RTF: {data['rtf']}"</span>)
+print(<span class="hl-str">f"Phonemes: {data['phonemes']}"</span>)</pre>
+  </div>
+
+  <h3>Streaming synthesis</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-kw">import</span> requests
+
+<span class="hl-kw">with</span> requests.post(
+    <span class="hl-str">"http://localhost:8000/synthesize/stream"</span>,
+    json={<span class="hl-str">"text"</span>: <span class="hl-str">"مرحبا بالعالم"</span>, <span class="hl-str">"speed"</span>: <span class="hl-num">1.0</span>},
+    stream=<span class="hl-kw">True</span>
+) <span class="hl-kw">as</span> r:
+    <span class="hl-kw">with</span> open(<span class="hl-str">"output.wav"</span>, <span class="hl-str">"wb"</span>) <span class="hl-kw">as</span> f:
+        <span class="hl-kw">for</span> chunk <span class="hl-kw">in</span> r.iter_content(<span class="hl-num">4096</span>):
+            f.write(chunk)</pre>
+  </div>
+
+  <h3>Parameter guide</h3>
+  <table>
+    <tr><th>Parameter</th><th>Range</th><th>Default</th><th>Effect</th></tr>
+    <tr><td><code>speed</code></td><td>0.5 – 2.0</td><td>1.0</td><td>Speaking rate. 0.5 = half speed, 2.0 = double</td></tr>
+    <tr><td><code>pitch_shift</code></td><td>−6 – +6</td><td>0.0</td><td>Pitch in semitones. Negative = lower, positive = higher</td></tr>
+    <tr><td><code>noise_scale</code></td><td>0.0 – 1.0</td><td>0.667</td><td>Prosodic variation. Higher = more expressive</td></tr>
+    <tr><td><code>return_phonemes</code></td><td>bool</td><td>false</td><td>Include phoneme sequence in response</td></tr>
+  </table>
+</section>
+
+<!-- Tutorial: Training -->
+<section id="tutorial-train">
+  <h2>Tutorial: Training Your Own Model</h2>
+
+  <div class="callout warn">
+    <div class="callout-head">Requirements for training</div>
+    Training VITS requires a CUDA-capable GPU (8 GB+ VRAM), at least 10 hours of MSA audio, and takes 3–7 days on a single RTX 3080.
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Acquire MSA dataset</div>
+        <div class="step-desc">Download Arabic Speech Corpus (ASC) from <code>en.arabicspeechcorpus.com</code>. This is 1,813 sentences, fully diacritized, studio quality — the best starting point for MSA TTS.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Preprocess via launcher</div>
+        <div class="step-desc">Use Launcher → Training → Prepare dataset. It resamples audio to 22050 Hz and creates train/val split files.</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-cmd">./msa_tts_launcher.sh</span>  <span class="hl-comment"># → 3 Training → 1 Prepare dataset</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Generate training config</div>
+        <div class="step-desc">Launcher → Training → Generate config creates <code>configs/arabic_msa_vits.json</code> with all hyperparameters pre-tuned for Arabic MSA.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Start training</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-comment"># Via launcher (recommended — handles all setup):</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span>  <span class="hl-comment"># → 3 → 2 Start training</span>
+
+<span class="hl-comment"># Or direct:</span>
+<span class="hl-cmd">cd</span> vits
+<span class="hl-cmd">python</span> train.py \
+  <span class="hl-flag">--config</span> ../configs/arabic_msa_vits.json \
+  <span class="hl-flag">--model_dir</span> ../checkpoints</pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Monitor with TensorBoard</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-cmd">./msa_tts_launcher.sh</span>  <span class="hl-comment"># → 3 → 4 TensorBoard</span>
+<span class="hl-comment"># Visit http://localhost:6006</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Load checkpoint into server</div>
+        <div class="code-wrap">
+          <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><span class="hl-kw">TTS_MODEL_PATH</span>=checkpoints/G_latest.pth \
+<span class="hl-cmd">./msa_tts_launcher.sh</span> start</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- API Reference -->
+<section id="api">
+  <h2>API Reference</h2>
+
+  <div class="endpoint-list">
+    <div class="endpoint">
+      <div class="ep-method ep-get">GET</div>
+      <div>
+        <div class="ep-path">/health</div>
+        <div class="ep-desc">Server status, model load state, diacritizer backend, device</div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-get">GET</div>
+      <div>
+        <div class="ep-path">/voices</div>
+        <div class="ep-desc">List available TTS voices with metadata</div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-get">GET</div>
+      <div>
+        <div class="ep-path">/docs</div>
+        <div class="ep-desc">Interactive Swagger UI — test all endpoints in browser</div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-post">POST</div>
+      <div>
+        <div class="ep-path">/synthesize</div>
+        <div class="ep-desc">Full TTS pipeline → base64-encoded WAV. Body: <code>text</code>, <code>speed</code>, <code>pitch_shift</code>, <code>noise_scale</code>, <code>return_phonemes</code></div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-post">POST</div>
+      <div>
+        <div class="ep-path">/synthesize/stream</div>
+        <div class="ep-desc">Streaming WAV response (Content-Type: audio/wav)</div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-post">POST</div>
+      <div>
+        <div class="ep-path">/normalize</div>
+        <div class="ep-desc">Text normalization only. Returns <code>normalized</code></div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-post">POST</div>
+      <div>
+        <div class="ep-path">/diacritize</div>
+        <div class="ep-desc">Add tashkeel to MSA text. Returns <code>diacritized</code>, <code>backend</code></div>
+      </div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-method ep-post">POST</div>
+      <div>
+        <div class="ep-path">/g2p</div>
+        <div class="ep-desc">Grapheme-to-phoneme. Returns <code>phonemes</code>, <code>normalized</code>, <code>diacritized</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Live Demo -->
+<section id="demo">
+  <h2>Live Demo</h2>
+  <p>Try the pipeline directly — works offline using the Web Audio API fallback.</p>
+
+  <div class="demo-card">
+    <div class="demo-toolbar">
+      <div class="demo-dot r"></div><div class="demo-dot y"></div><div class="demo-dot g"></div>
+      <div class="demo-title">Arabic TTS — Demo Mode</div>
+    </div>
+    <div class="demo-body">
+      <div class="demo-phrases" id="demoPhrases">
+        <button class="demo-phrase" onclick="setDemo('بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ')">بسم الله</button>
+        <button class="demo-phrase" onclick="setDemo('السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ')">السلام عليكم</button>
+        <button class="demo-phrase" onclick="setDemo('اللُّغَةُ الْعَرَبِيَّةُ لُغَةٌ سَامِيَّةٌ')">اللغة العربية</button>
+        <button class="demo-phrase" onclick="setDemo('الْعِلْمُ نُورٌ وَالْجَهْلُ ظَلَامٌ')">العلم نور</button>
+      </div>
+
+      <textarea class="demo-textarea" id="demoText"
+        placeholder="أدخل نصاً عربياً هنا…"
+        dir="rtl"></textarea>
+
+      <div class="demo-controls">
+        <div class="demo-slider-wrap">
+          <span>Speed</span>
+          <input type="range" class="demo-range" id="demoSpeed" min="0.5" max="2.0" step="0.05" value="1.0"
+                 oninput="document.getElementById('demoSpeedVal').textContent=parseFloat(this.value).toFixed(1)+'×'">
+          <span class="demo-val" id="demoSpeedVal">1.0×</span>
+        </div>
+        <div class="demo-slider-wrap">
+          <span>Pitch</span>
+          <input type="range" class="demo-range" id="demoPitch" min="-6" max="6" step="0.5" value="0"
+                 oninput="document.getElementById('demoPitchVal').textContent=(this.value>0?'+':'')+parseFloat(this.value).toFixed(1)">
+          <span class="demo-val" id="demoPitchVal">0</span>
+        </div>
+        <button class="demo-btn" id="demoBtn" onclick="runDemo()">▶ Synthesize</button>
+      </div>
+
+      <div class="demo-output" id="demoOutput">
+        <div class="output-row">
+          <div class="output-label">Pipeline stages</div>
+          <div id="demoPipelineStages" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+
+          <div class="output-label">Normalized text</div>
+          <div class="output-text output-arabic" id="demoNormalized"></div>
+
+          <div class="output-label" style="margin-top:10px">G2P phonemes</div>
+          <div class="output-text" id="demoPhonemes" style="font-size:0.75rem"></div>
+
+          <div class="output-label" style="margin-top:10px">Audio output</div>
+          <div class="waveform-mini"><canvas id="demoCanvas"></canvas></div>
+          <div class="player-row">
+            <button class="mini-play" id="demoPlay" onclick="toggleDemoPlay()">▶</button>
+            <div class="mini-time"><span id="demoTimeCur">0:00</span> / <span id="demoTimeTotal">0:00</span></div>
+            <button class="mini-dl" id="demoDl" onclick="demoDl()">↓ WAV</button>
+          </div>
+          <div class="metrics-mini" id="demoMetrics"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Model comparison -->
+<section id="models">
+  <h2>Model & Vocoder Comparison</h2>
+  <h3>TTS Architectures</h3>
+  <table>
+    <tr><th>Model</th><th>Type</th><th>Latency</th><th>Quality</th><th>Arabic</th><th>Notes</th></tr>
+    <tr>
+      <td class="td-best">VITS</td><td>End-to-end</td><td>~20ms/s</td>
+      <td><span class="star">★★★★★</span></td><td class="td-best">Best</td>
+      <td>Our choice. HiFi-GAN built-in</td>
+    </tr>
+    <tr>
+      <td>FastSpeech 2</td><td>Non-autoregressive</td><td>~5ms/s</td>
+      <td><span class="star">★★★</span></td><td>Moderate</td>
+      <td>Fastest; needs separate vocoder</td>
+    </tr>
+    <tr>
+      <td>Tacotron 2</td><td>Autoregressive</td><td>~200ms/s</td>
+      <td><span class="star">★★★★</span></td><td>Good</td>
+      <td>Slow; prone to attention errors</td>
+    </tr>
+    <tr>
+      <td>Glow-TTS</td><td>Flow-based</td><td>~15ms/s</td>
+      <td><span class="star">★★★★</span></td><td>Good</td>
+      <td>Parallel; complex training</td>
+    </tr>
+  </table>
+
+  <h3>Vocoders</h3>
+  <table>
+    <tr><th>Vocoder</th><th>Type</th><th>Speed</th><th>Quality</th><th>Verdict</th></tr>
+    <tr>
+      <td class="td-best">HiFi-GAN</td><td>GAN</td><td>Real-time CPU</td>
+      <td><span class="star">★★★★★</span></td>
+      <td class="td-best">Use this</td>
+    </tr>
+    <tr>
+      <td>WaveNet</td><td>Autoregressive</td><td>~1000× slower</td>
+      <td><span class="star">★★★★★</span></td>
+      <td>Too slow for production</td>
+    </tr>
+    <tr>
+      <td>WaveGlow</td><td>Flow-based</td><td>~5× slower</td>
+      <td><span class="star">★★★★</span></td>
+      <td>Acceptable; harder to train</td>
+    </tr>
+  </table>
+</section>
+
+<!-- Datasets -->
+<section id="datasets">
+  <h2>Recommended Datasets (MSA Only)</h2>
+  <table>
+    <tr><th>Dataset</th><th>Size</th><th>Quality</th><th>Diacritized</th><th>Notes</th></tr>
+    <tr>
+      <td class="td-best">Arabic Speech Corpus (ASC)</td><td>~3h</td>
+      <td><span class="star">★★★★★</span></td><td>✔ Yes</td>
+      <td>Best starter. Single speaker, studio. Nawar Halabi</td>
+    </tr>
+    <tr>
+      <td>MLS Arabic (LibriSpeech)</td><td>~1000h</td>
+      <td><span class="star">★★★★</span></td><td>✘ No</td>
+      <td>Large; audiobook quality. Needs filtering</td>
+    </tr>
+    <tr>
+      <td>Mozilla Common Voice</td><td>~500h</td>
+      <td><span class="star">★★★</span></td><td>✘ No</td>
+      <td>Mixed quality/dialects. Filter MSA aggressively</td>
+    </tr>
+    <tr>
+      <td>CLARIN Arabic Broadcast</td><td>~200h</td>
+      <td><span class="star">★★★★</span></td><td>Partial</td>
+      <td>Excellent MSA prosody from news broadcasts</td>
+    </tr>
+    <tr>
+      <td>Custom recording</td><td>10–20h</td>
+      <td><span class="star">★★★★★</span></td><td>✔ Yes</td>
+      <td>Best for production. Single professional MSA speaker</td>
+    </tr>
+  </table>
+
+  <div class="callout info">
+    <div class="callout-head">MSA purity matters</div>
+    Mixing dialectal Arabic (Egyptian, Gulf, Levantine) into the training data will corrupt the model's
+    prosody and phoneme distributions for MSA output. Always verify recordings with an MSA-native speaker.
+  </div>
+</section>
+
+<!-- Metrics -->
+<section id="metrics">
+  <h2>Evaluation Metrics</h2>
+  <table>
+    <tr><th>Metric</th><th>Target</th><th>Description</th></tr>
+    <tr><td>MOS</td><td>≥ 4.0</td><td>Mean Opinion Score (human listeners, 1–5)</td></tr>
+    <tr><td>MCD</td><td>< 6 dB</td><td>Mel Cepstral Distortion — lower is better</td></tr>
+    <tr><td>WER</td><td>< 5%</td><td>Word Error Rate (ASR on synthesized audio)</td></tr>
+    <tr><td>DER</td><td>< 5%</td><td>Diacritization Error Rate (CAMeL achieves ~3.8%)</td></tr>
+    <tr><td>RTF</td><td>< 0.3</td><td>Real-Time Factor. < 0.1 = streaming-capable</td></tr>
+    <tr><td>DNSMOS</td><td>≥ 3.5</td><td>Automatic MOS prediction, no human needed</td></tr>
+  </table>
+
+  <h3>Run evaluation</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-kw">from</span> msa_tts_backend <span class="hl-kw">import</span> TTSEvaluator
+<span class="hl-kw">import</span> numpy <span class="hl-kw">as</span> np
+
+<span class="hl-comment"># MCD between reference and synthesized audio</span>
+mcd = TTSEvaluator.mel_cepstral_distortion(ref_audio, syn_audio, sr=<span class="hl-num">22050</span>)
+
+<span class="hl-comment"># Real-Time Factor</span>
+rtf = TTSEvaluator.real_time_factor(
+    audio_duration_s=<span class="hl-num">3.5</span>,
+    inference_time_s=<span class="hl-num">0.4</span>
+)  <span class="hl-comment"># → 0.114 (good)</span>
+
+<span class="hl-comment"># Diacritization Error Rate</span>
+der = TTSEvaluator.diacritization_error_rate(
+    ref_text=<span class="hl-str">"الكِتَابُ"</span>,
+    hyp_text=<span class="hl-str">"الكَتَابُ"</span>
+)</pre>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <h2>FAQ</h2>
+
+  <div class="faq">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Does it work without a trained VITS model?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        Yes. Without a checkpoint, the system runs in <strong>demo mode</strong> — it generates a
+        formant-like synthesized tone proportional to the input text length. This lets you test the
+        full API, frontend, normalization, diacritization, and G2P pipeline without any model.
+        The frontend also has a built-in Web Audio API fallback that works completely offline.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Can I use dialectal Arabic (Egyptian, Gulf, etc.)?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        The system is designed and trained exclusively for Modern Standard Arabic (الفصحى).
+        Dialectal input will be processed but the output quality will be poor because the phoneme
+        mappings, diacritizer, and acoustic model are all calibrated for MSA phonology and prosody.
+        For dialect support, a separate model trained on dialect-specific data would be needed.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        How long does training take?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        On a single NVIDIA RTX 3080 (10 GB VRAM), training VITS on ~10 hours of MSA audio takes
+        approximately <strong>3–5 days</strong> to reach production quality (~400k steps).
+        On an A100 80 GB, this reduces to ~18–24 hours. The model starts producing intelligible
+        speech around 50k steps (~6 hours on RTX 3080).
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        What's the difference between CAMeL Tools and Mishkal?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <strong>CAMeL Tools</strong> uses a fine-tuned BERT model for diacritization, achieving ~95%
+        Diacritization Error Rate accuracy on MSA text. It requires downloading ~2 GB of model data.
+        <br><br>
+        <strong>Mishkal</strong> is rule-based and achieves ~88% DER. It's much lighter, has no download
+        requirement, and is significantly faster. For most TTS use cases where absolute phonemic accuracy
+        isn't critical, Mishkal is a good production choice.
+        <br><br>
+        The system auto-detects which is available and falls back gracefully.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Can I run this on CPU only?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        Yes. The inference server runs on CPU with no configuration changes.
+        Set <code>TTS_DEVICE=cpu</code> or leave it as <code>auto</code> — it will detect the absence of CUDA
+        and use CPU automatically. RTF on a modern CPU (Intel i7/i9, Apple M2+) is typically
+        0.3–0.8, which is acceptable for non-streaming use cases. Training on CPU is not recommended
+        — it would take weeks instead of days.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Can I run this in a web browser (ONNX)?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        The trained VITS model can be exported to ONNX format (Launcher → Training → Export ONNX)
+        and then run in-browser via ONNX Runtime Web. The frontend demo already handles the Web Audio
+        API synthesis fallback. For full browser-native TTS, you would also need to port the diacritizer —
+        the Arabic G2P and normalization are already pure JavaScript-compatible logic.
+        This is an advanced integration not covered in the default setup.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        The API returns HTTP 422 — what does it mean?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        422 Unprocessable Entity means your request failed validation. Common causes:
+        <ul style="margin:8px 0 0 20px;line-height:2">
+          <li>Text is empty (<code>min_length=1</code>)</li>
+          <li>Text exceeds 2000 characters</li>
+          <li>Speed outside 0.5–2.0 range</li>
+          <li>Pitch outside ±6 semitone range</li>
+          <li>Missing required field <code>text</code></li>
+        </ul>
+        Check the response body for the exact <code>detail</code> field explaining which field failed.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        How do I add a second speaker (multi-speaker VITS)?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        Change <code>"n_speakers": 1</code> to the number of speakers in <code>arabic_msa_vits.json</code>.
+        Add a speaker embedding table to the VITS model. Each training utterance must have a speaker ID.
+        In the API request, add a <code>"speaker_id": 0</code> parameter. Multi-speaker training
+        requires at least 1–2 hours of audio per speaker.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        How many API workers should I run?
+        <span class="faq-icon">+</span>
+      </button>
+      <div class="faq-a">
+        <strong>GPU:</strong> 1 worker only. GPU memory is not easily shared between uvicorn workers.
+        For high throughput with GPU, use request batching within a single worker.
+        <br><br>
+        <strong>CPU:</strong> <code>2 × CPU_cores + 1</code> is the standard formula. For a 4-core machine,
+        use 9 workers. Set via <code>API_WORKERS</code> in <code>.tts_config</code> or the Configuration menu.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Troubleshooting -->
+<section id="troubleshoot">
+  <h2>Troubleshooting</h2>
+
+  <h3>Server won't start</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-comment"># Check logs</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span> logs
+
+<span class="hl-comment"># Common fix: port already in use</span>
+<span class="hl-cmd">lsof</span> <span class="hl-flag">-i</span> :8000
+<span class="hl-cmd">kill</span> <span class="hl-flag">-9</span> &lt;PID&gt;
+
+<span class="hl-comment"># Or change port in config:</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span>  <span class="hl-comment"># → 5 Config → 2 Set port</span></pre>
+  </div>
+
+  <h3>CAMeL Tools import error</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-comment"># Reinstall with correct version</span>
+<span class="hl-cmd">pip install</span> camel-tools==1.5.2
+<span class="hl-cmd">camel_data</span> <span class="hl-flag">-i</span> defaults
+
+<span class="hl-comment"># If data is corrupt:</span>
+<span class="hl-cmd">rm</span> <span class="hl-flag">-rf</span> ~/.camel_tools
+<span class="hl-cmd">camel_data</span> <span class="hl-flag">-i</span> defaults</pre>
+  </div>
+
+  <h3>CUDA out of memory during training</h3>
+  <div class="callout warn">
+    <div class="callout-head">Fix: reduce batch size</div>
+    In <code>configs/arabic_msa_vits.json</code>, reduce <code>"batch_size"</code> from 16 to 8 or 4.
+    Also reduce <code>"segment_size"</code> from 8192 to 4096 for lower VRAM usage.
+  </div>
+
+  <h3>Frontend shows "API: offline"</h3>
+  <p>This is expected when the backend isn't running. The frontend works in demo mode regardless — you can still synthesize audio using the Web Audio API fallback. To connect your backend, update <code>const API_BASE</code> in the HTML file and start the server.</p>
+
+  <h3>Arabic text appears left-to-right</h3>
+  <p>Ensure your browser handles RTL text properly. The textarea has <code>dir="rtl"</code> set. Some OS paste operations strip directional markers — type directly in the textarea or use the quick-phrase buttons.</p>
+</section>
+
+<!-- Deployment -->
+<section id="deploy">
+  <h2>Deployment</h2>
+
+  <h3>Docker (recommended)</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-comment"># Generate Dockerfile + docker-compose.yml</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span>  <span class="hl-comment"># → 7 Deployment → 1, then 4</span>
+
+<span class="hl-comment"># Build and run</span>
+<span class="hl-cmd">docker-compose</span> up <span class="hl-flag">-d</span>
+
+<span class="hl-comment"># With GPU:</span>
+<span class="hl-cmd">docker run</span> <span class="hl-flag">--gpus all</span> <span class="hl-flag">-p</span> 8000:8000 msa-tts:latest</pre>
+  </div>
+
+  <h3>systemd (Linux server)</h3>
+  <div class="code-wrap">
+    <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="hl-comment"># Generate service file</span>
+<span class="hl-cmd">./msa_tts_launcher.sh</span>  <span class="hl-comment"># → 7 → 6 systemd</span>
+
+<span class="hl-cmd">sudo cp</span> msa-tts.service /etc/systemd/system/
+<span class="hl-cmd">sudo systemctl</span> enable <span class="hl-flag">--now</span> msa-tts
+<span class="hl-cmd">sudo journalctl</span> <span class="hl-flag">-u</span> msa-tts <span class="hl-flag">-f</span></pre>
+  </div>
+
+  <h3>Production checklist</h3>
+  <table>
+    <tr><th>Item</th><th>Status</th></tr>
+    <tr><td>Restrict CORS origins in <code>allow_origins</code></td><td>⚠ Required</td></tr>
+    <tr><td>Add rate limiting (nginx or middleware)</td><td>⚠ Recommended</td></tr>
+    <tr><td>Enable HTTPS via nginx + Let's Encrypt</td><td>⚠ Recommended</td></tr>
+    <tr><td>Set <code>LOG_LEVEL=warning</code> in production</td><td>✔ Via config</td></tr>
+    <tr><td>Mount checkpoint as read-only volume</td><td>✔ docker-compose includes this</td></tr>
+    <tr><td>Health check endpoint configured</td><td>✔ <code>/health</code></td></tr>
+  </table>
+</section>
+
+</main>
+</div>
+
+<button class="mob-nav-toggle" onclick="document.getElementById('sidebar').style.display='block'">
+  ☰ Menu
+</button>
+
+<script>
+// ── Scroll progress ──
+window.addEventListener('scroll', () => {
+  const total = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = (window.scrollY / total * 100).toFixed(1);
+  document.getElementById('scroll-bar').style.width = pct + '%';
+});
+
+// ── Nav active state ──
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+sections.forEach(s => observer.observe(s));
+
+// ── Copy code ──
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── FAQ ──
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+
+// ── Demo ──
+let demoAudioCtx = null, demoBuffer = null, demoSource = null;
+let demoPlaying = false, demoOffset = 0, demoStart = 0;
+let demoBlob = null, demoAnimId = null;
+
+function setDemo(text) {
+  document.getElementById('demoText').value = text;
+}
+
+function encodeWAV(samples, sr) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0,'RIFF'); v.setUint32(4,36+samples.length*2,true); ws(8,'WAVE'); ws(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true);
+  v.setUint16(34,16,true); ws(36,'data'); v.setUint32(40,samples.length*2,true);
+  let off=44;
+  for(let i=0;i<samples.length;i++,off+=2){
+    const s=Math.max(-1,Math.min(1,samples[i]));
+    v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);
+  }
+  return buf;
+}
+
+// Simple G2P simulation for demo
+const DEMO_G2P = {
+  'ب':'b','ت':'t','ث':'th','ج':'dʒ','ح':'ħ','خ':'x','د':'d','ذ':'ð','ر':'r','ز':'z',
+  'س':'s','ش':'ʃ','ص':'sˤ','ض':'dˤ','ط':'tˤ','ظ':'ðˤ','ع':'ʕ','غ':'ɣ','ف':'f',
+  'ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','و':'w','ي':'j','ء':'ʔ',
+  'أ':'ʔ','إ':'ʔ','آ':'ʔaː','ا':'aː','ة':'t','ى':'aː',
+  '\u064E':'a','\u064F':'u','\u0650':'i','\u064B':'an','\u064C':'un','\u064D':'in','\u0652':''
+};
+
+function textToPhonemes(text) {
+  let phones = [];
+  for (const ch of text) {
+    if (ch === '،') { phones.push('<short_pause>'); continue; }
+    if (ch === '.' || ch === '؟' || ch === '!') { phones.push('<long_pause>'); continue; }
+    const p = DEMO_G2P[ch];
+    if (p !== undefined && p !== '') phones.push(p);
+  }
+  return phones.join(' ');
+}
+
+function normalizeText(text) {
+  const nums = {'0':'صفر','1':'واحد','2':'اثنان','3':'ثلاثة','4':'أربعة','5':'خمسة',
+                 '6':'ستة','7':'سبعة','8':'ثمانية','9':'تسعة'};
+  const enums = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+  text = text.replace(/[ـ]/g,''); // tatweel
+  text = text.replace(/[٠-٩]/g, c => enums[c] || c);
+  text = text.replace(/\d+/g, n => {
+    const digits = n.split('').map(d => nums[d] || d);
+    return digits.join(' ');
+  });
+  return text.trim();
+}
+
+async function runDemo() {
+  const text = document.getElementById('demoText').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('demoBtn');
+  btn.disabled = true; btn.textContent = '⏳ Processing…';
+
+  // Show stages animating
+  const stagesEl = document.getElementById('demoPipelineStages');
+  const stages = ['📝 Normalize','◌ّ Diacritize','🔤 G2P','🎛 VITS','🔊 HiFi-GAN','🎵 Audio'];
+  stagesEl.innerHTML = stages.map(s =>
+    `<div style="font-size:0.68rem;padding:3px 10px;border-radius:2px;
+     border:1px solid rgba(74,180,120,0.15);color:var(--muted);
+     font-family:var(--font-mono);transition:all 0.3s" class="pipe-chip">${s}</div>`
+  ).join('');
+  const chips = stagesEl.querySelectorAll('.pipe-chip');
+
+  const SR = 22050;
+  const speed = parseFloat(document.getElementById('demoSpeed').value);
+
+  for (let i = 0; i < chips.length; i++) {
+    await new Promise(r => setTimeout(r, 220));
+    chips[i].style.color = 'var(--green-glow)';
+    chips[i].style.borderColor = 'rgba(74,180,120,0.4)';
+    chips[i].style.background = 'rgba(74,180,120,0.08)';
+  }
+
+  // Normalize
+  const normalized = normalizeText(text);
+  document.getElementById('demoNormalized').textContent = normalized;
+
+  // G2P
+  const phonemes = textToPhonemes(normalized);
+  document.getElementById('demoPhonemes').textContent = phonemes || '(no phonemes — try diacritized text)';
+
+  // Synthesize audio
+  const phoneList = phonemes.split(' ').filter(Boolean);
+  const durPerPhone = Math.floor(SR * 0.085 / speed);
+  const totalSamples = Math.max(phoneList.length * durPerPhone, Math.floor(SR * 0.5));
+  const samples = new Float32Array(totalSamples);
+  const baseFreq = 110;
+
+  for (let pi = 0; pi < phoneList.length; pi++) {
+    const ph = phoneList[pi];
+    const start = pi * durPerPhone;
+    const end = Math.min(start + durPerPhone, totalSamples);
+    if (ph.includes('pause')) continue;
+    const isVowel = ['a','i','u','aː','iː','uː','an','in','un'].includes(ph);
+    const amp = isVowel ? 0.35 : 0.18;
+    for (let s = start; s < end; s++) {
+      const t = s / SR;
+      const env = Math.min((s-start)*10/SR, 1) * Math.min((end-s)*10/SR, 1);
+      const vib = 1 + 0.005 * Math.sin(2*Math.PI*5.5*t);
+      samples[s] += env * amp * (
+        Math.sin(2*Math.PI*baseFreq*vib*t) * 0.4 +
+        Math.sin(2*Math.PI*baseFreq*2*vib*t) * 0.25 +
+        Math.sin(2*Math.PI*baseFreq*3*t) * 0.15
+      );
+    }
+  }
+
+  // Normalize audio
+  const peak = Math.max(...samples.map(Math.abs));
+  if (peak > 0) samples.forEach((_, i, a) => a[i] = a[i] / peak * 0.85);
+
+  const wavBuf = encodeWAV(samples, SR);
+  demoBlob = new Blob([wavBuf], {type:'audio/wav'});
+
+  // Load into Web Audio
+  if (demoSource) { demoSource.stop(); demoSource = null; }
+  demoAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  demoBuffer = await demoAudioCtx.decodeAudioData(wavBuf.slice(0));
+
+  // Draw waveform
+  const canvas = document.getElementById('demoCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.clientWidth * devicePixelRatio;
+  canvas.height = canvas.parentElement.clientHeight * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  const W = canvas.parentElement.clientWidth, H = canvas.parentElement.clientHeight;
+  const data = demoBuffer.getChannelData(0);
+  const step = Math.ceil(data.length / W);
+  ctx.clearRect(0,0,W,H);
+  const grad = ctx.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,'rgba(74,180,120,0.3)');
+  grad.addColorStop(0.5,'rgba(109,232,160,0.7)');
+  grad.addColorStop(1,'rgba(74,180,120,0.3)');
+  ctx.fillStyle = grad;
+  for (let x=0;x<W;x++){
+    let mn=1,mx=-1;
+    for(let i=0;i<step;i++){const s=data[x*step+i]||0;if(s<mn)mn=s;if(s>mx)mx=s;}
+    ctx.fillRect(x,(1+mx)/2*H,1,Math.max(1,(mn-mx)/2*H*-1));
+  }
+
+  // Update metrics
+  const dur = totalSamples / SR;
+  document.getElementById('demoMetrics').innerHTML = `
+    <div class="metric-chip">Duration <span>${dur.toFixed(2)}s</span></div>
+    <div class="metric-chip">Sample Rate <span>22050 Hz</span></div>
+    <div class="metric-chip">Phonemes <span>${phoneList.length}</span></div>
+    <div class="metric-chip">Mode <span>Demo</span></div>
+  `;
+
+  const fmt = s => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+  document.getElementById('demoTimeTotal').textContent = fmt(dur);
+  document.getElementById('demoTimeCur').textContent = '0:00';
+  document.getElementById('demoPlay').textContent = '▶';
+  demoPlaying = false; demoOffset = 0;
+
+  document.getElementById('demoOutput').classList.add('show');
+  btn.disabled = false; btn.textContent = '▶ Synthesize';
+}
+
+function toggleDemoPlay() {
+  if (!demoBuffer) return;
+  if (demoPlaying) {
+    demoOffset += demoAudioCtx.currentTime - demoStart;
+    demoSource.stop(); demoSource = null; demoPlaying = false;
+    document.getElementById('demoPlay').textContent = '▶';
+    if (demoAnimId) cancelAnimationFrame(demoAnimId);
+  } else {
+    if (demoOffset >= demoBuffer.duration) demoOffset = 0;
+    demoSource = demoAudioCtx.createBufferSource();
+    demoSource.buffer = demoBuffer;
+    demoSource.connect(demoAudioCtx.destination);
+    demoSource.start(0, demoOffset);
+    demoStart = demoAudioCtx.currentTime;
+    demoPlaying = true;
+    document.getElementById('demoPlay').textContent = '⏸';
+    demoSource.onended = () => {
+      if (demoPlaying) { demoPlaying=false; demoOffset=0; document.getElementById('demoPlay').textContent='▶'; }
+    };
+    updateDemoProgress();
+  }
+}
+
+function updateDemoProgress() {
+  const elapsed = demoOffset + (demoAudioCtx.currentTime - demoStart);
+  const fmt = s => `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
+  document.getElementById('demoTimeCur').textContent = fmt(Math.min(elapsed, demoBuffer.duration));
+  if (demoPlaying) demoAnimId = requestAnimationFrame(updateDemoProgress);
+}
+
+function demoDl() {
+  if (!demoBlob) return;
+  const url = URL.createObjectURL(demoBlob);
+  const a = document.createElement('a'); a.href=url; a.download='msa_tts_demo.wav';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// Auto-populate first demo phrase
+setDemo('بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ');
+</script>
+</body>
+</html>

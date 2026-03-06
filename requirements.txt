@@ -1,0 +1,35 @@
+# MSA Arabic TTS — Python Dependencies
+# Install: pip install -r requirements.txt --break-system-packages
+
+# Core framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+pydantic==2.7.0
+
+# Deep Learning
+torch>=2.2.0          # CUDA build: pip install torch --index-url https://download.pytorch.org/whl/cu121
+torchaudio>=2.2.0
+numpy>=1.26.0
+
+# Arabic NLP — Diacritization
+camel-tools>=1.5.2    # BERT-based MSA diacritizer (best accuracy)
+# Alternative: pip install mishkal  (rule-based, faster)
+
+# Audio processing
+librosa>=0.10.0       # MCD evaluation metric
+soundfile>=0.12.0     # WAV I/O
+scipy>=1.13.0
+
+# VITS dependencies (install VITS from source)
+# git clone https://github.com/jaywalnut310/vits
+# pip install -e ./vits
+
+# API utilities
+python-multipart==0.0.9
+httpx==0.27.0
+
+# Evaluation
+jiwer>=3.0.3          # WER/CER computation
+
+# Optional: streaming
+# websockets>=12.0
